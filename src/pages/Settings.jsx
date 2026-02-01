@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useFitness } from '../hooks/useFitness';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, Camera, MessageSquareCode, Plus, Activity, Trash2, User, Save, Edit2, TrendingDown, Target, Zap, Utensils } from 'lucide-react';
+import { ChevronLeft, Camera, MessageSquareCode, Plus, Activity, Trash2, User, Save, Edit2, TrendingDown, Target, Zap, Utensils, X } from 'lucide-react';
 import { useState, useRef } from 'react';
 
 const Settings = () => {
@@ -56,6 +56,14 @@ const Settings = () => {
             setUserInfo(prev => ({ ...prev, profileImage: base64String }));
         };
         reader.readAsDataURL(file);
+    };
+
+    const handleDeleteProfileImage = (e) => {
+        e.stopPropagation();
+        if (!window.confirm('프로필 사진을 삭제하시겠습니까?')) return;
+        const newProfile = { ...profile, profileImage: null };
+        saveProfile(newProfile);
+        setUserInfo(prev => ({ ...prev, profileImage: null }));
     };
 
     const handleAddInBody = () => {
@@ -125,6 +133,14 @@ const Settings = () => {
                             <div style={{ position: 'absolute', bottom: '-4px', right: '-4px', background: 'var(--primary)', color: '#fff', padding: '5px', borderRadius: '50%', border: '2px solid var(--bg-dark)' }}>
                                 <Camera size={12} />
                             </div>
+                            {profile.profileImage && (
+                                <div
+                                    onClick={handleDeleteProfileImage}
+                                    style={{ position: 'absolute', top: '-4px', right: '-4px', background: '#ff4d4d', color: '#fff', padding: '4px', borderRadius: '50%', border: '2px solid var(--bg-dark)', zIndex: 2 }}
+                                >
+                                    <X size={10} />
+                                </div>
+                            )}
                             <input
                                 type="file"
                                 ref={profileInputRef}
