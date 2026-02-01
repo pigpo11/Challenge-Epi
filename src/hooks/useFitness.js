@@ -75,14 +75,17 @@ export const FitnessProvider = ({ children }) => {
     const carbGrams = Math.max(0, carbKcal / 4);
 
     const newProfile = {
-      ...data,
-      bmr: Math.round(bmr),
-      tdee: Math.round(tdee),
-      targetCalories: Math.round(targetCalories),
+      ...profile, // Keep existing fields like profileImage
+      ...data,    // Overwrite with new form data
+      nickname: data.nickname || profile.nickname, // Ensure nickname is never lost
+      height: parseFloat(data.height) || profile.height,
+      bmr: bmr ? Math.round(bmr) : profile.bmr,
+      tdee: tdee ? Math.round(tdee) : profile.tdee,
+      targetCalories: targetCalories ? Math.round(targetCalories) : profile.targetCalories,
       macros: {
-        protein: Math.round(proteinGrams),
-        fat: Math.round(fatGrams),
-        carb: Math.round(carbGrams)
+        protein: proteinGrams ? Math.round(proteinGrams) : profile.macros.protein,
+        fat: fatGrams ? Math.round(fatGrams) : profile.macros.fat,
+        carb: carbGrams ? Math.round(carbGrams) : profile.macros.carb
       }
     };
 

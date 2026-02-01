@@ -8,7 +8,7 @@ import './index.css';
 
 function App() {
   const { profile } = useFitness();
-  const isSetup = profile.nickname && profile.height;
+  const isSetup = Boolean(profile?.nickname && profile?.height);
 
   return (
     <Router>

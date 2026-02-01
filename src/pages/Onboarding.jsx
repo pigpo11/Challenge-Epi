@@ -13,8 +13,19 @@ const Onboarding = () => {
     const handleNext = () => {
         if (step < 5) setStep(step + 1);
         else {
+            // Final step: Save and Navigate
+            if (!formData.nickname || !formData.height) {
+                alert('필수 정보를 모두 입력해주세요.');
+                return;
+            }
+
             calculateFitness(formData);
-            navigate('/dashboard');
+
+            // Brief delay to allow context state update to propagate
+            // and ensure App.jsx's isSetup check passes correctly
+            setTimeout(() => {
+                navigate('/dashboard', { replace: true });
+            }, 100);
         }
     };
 
