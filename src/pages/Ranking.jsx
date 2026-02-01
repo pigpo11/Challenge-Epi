@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ChevronLeft, Trophy, Medal, Star } from 'lucide-react';
+import { ChevronLeft, Trophy } from 'lucide-react';
 import { useFitness } from '../hooks/useFitness';
 
 const Ranking = () => {
@@ -8,82 +8,69 @@ const Ranking = () => {
     const { profile } = useFitness();
 
     const rankings = [
-        { rank: 1, name: '에피소드 서초 김OO', score: 980, delta: '+2', status: '식단 완벽' },
-        { rank: 2, name: '에피소드 강남 박OO', score: 955, delta: '-1', status: '운동 고수' },
-        { rank: 3, name: '에피소드 서초 이OO', score: 920, delta: '0', status: '단백질 빌런' },
-        { rank: 4, name: profile.nickname || '나 (본인)', score: profile.points || 0, delta: '+5', isMe: true, status: '파이팅!' },
-        { rank: 5, name: '에피소드 강남 최OO', score: 850, delta: '+1', status: '유산소 왕' },
-        { rank: 6, name: '에피소드 서초 정OO', score: 820, delta: '-2', status: '성실파' },
+        { rank: 1, name: '에피소드 서초 김OO', score: 980, status: '식단 완벽' },
+        { rank: 2, name: '에피소드 강남 박OO', score: 955, status: '운동 고수' },
+        { rank: 3, name: '에피소드 서초 이OO', score: 920, status: '단백질 빌런' },
+        { rank: 4, name: profile.nickname || '나 (본인)', score: profile.points || 0, isMe: true, status: profile.status || '파이팅!' },
+        { rank: 5, name: '에피소드 강남 최OO', score: 850, status: '유산소 왕' },
+        { rank: 6, name: '에피소드 서초 정OO', score: 820, status: '성실파' },
     ];
 
     return (
-        <div className="container" style={{ paddingTop: '2rem', paddingBottom: '4rem' }}>
-            <header style={{ marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <button onClick={() => navigate(-1)} style={{ padding: '0.5rem', background: 'var(--glass-bg)', color: '#fff' }}>
-                    <ChevronLeft size={24} />
+        <div style={{ paddingBottom: '4rem' }}>
+            <header style={{ padding: '1.5rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.75rem', position: 'sticky', top: 0, background: 'var(--bg-dark)', zIndex: 10 }}>
+                <button onClick={() => navigate(-1)} style={{ background: 'none', color: '#fff' }}>
+                    <ChevronLeft size={28} />
                 </button>
-                <h1 style={{ fontSize: '1.25rem' }}>챌린지 랭킹</h1>
+                <h1 style={{ fontSize: '1.3rem', marginBottom: 0 }}>챌린지 랭킹</h1>
             </header>
 
-            {/* Top 3 UI */}
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-end', gap: '1rem', height: '180px', marginBottom: '3rem' }}>
-                {/* 2nd */}
-                <div style={{ textAlign: 'center' }}>
-                    <Medal size={24} color="#C0C0C0" style={{ marginBottom: '8px' }} />
-                    <div style={{ width: '80px', height: '80px', background: 'var(--glass-bg)', borderRadius: '40px', border: '2px solid #C0C0C0', margin: '0 auto 8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem', fontWeight: 800 }}>2</div>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 700 }}>{rankings[1].name.split(' ')[2]}</div>
+            <div className="container">
+                {/* My Current Rank Summary */}
+                <div className="glass-card" style={{ background: 'var(--bg-surface)', marginBottom: '2rem', padding: '1.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                        <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '4px' }}>나의 현재 순위</div>
+                        <div style={{ fontSize: '1.8rem', fontWeight: 800 }}>4<span style={{ fontSize: '1rem', fontWeight: 500, marginLeft: '2px' }}>위</span></div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '4px' }}>획득 포인트</div>
+                        <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--primary)' }}>{profile.points.toLocaleString()}</div>
+                    </div>
                 </div>
 
-                {/* 1st */}
-                <div style={{ textAlign: 'center' }}>
-                    <Trophy size={32} color="#FFD700" style={{ marginBottom: '8px' }} />
-                    <div style={{ width: '100px', height: '100px', background: 'rgba(255, 215, 0, 0.1)', borderRadius: '50px', border: '3px solid #FFD700', margin: '0 auto 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.75rem', fontWeight: 800 }}>1</div>
-                    <div style={{ fontSize: '0.875rem', fontWeight: 800 }}>{rankings[0].name.split(' ')[2]}</div>
-                </div>
-
-                {/* 3rd */}
-                <div style={{ textAlign: 'center' }}>
-                    <Star size={24} color="#CD7F32" style={{ marginBottom: '8px' }} />
-                    <div style={{ width: '80px', height: '80px', background: 'var(--glass-bg)', borderRadius: '40px', border: '2px solid #CD7F32', margin: '0 auto 8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem', fontWeight: 800 }}>3</div>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 700 }}>{rankings[2].name.split(' ')[2]}</div>
-                </div>
-            </div>
-
-            {/* Ranking List */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {rankings.map((user, i) => (
-                    <motion.div
-                        key={i}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: i * 0.05 }}
-                        className="glass-card"
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            padding: '1rem',
-                            borderColor: user.isMe ? 'var(--primary)' : 'var(--glass-border)',
-                            background: user.isMe ? 'rgba(0, 255, 163, 0.05)' : 'var(--bg-card)'
-                        }}
-                    >
-                        <div style={{ width: '30px', fontWeight: 800, color: user.rank <= 3 ? 'var(--primary)' : 'var(--text-muted)' }}>{user.rank}</div>
-                        <div style={{ flex: 1, marginLeft: '0.5rem' }}>
-                            <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                {user.name}
-                                {user.isMe && <span className="badge" style={{ fontSize: '0.5rem', background: 'var(--primary)', color: '#000', borderColor: 'transparent' }}>ME</span>}
+                <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', paddingLeft: '4px' }}>실시간 랭킹 순위</h3>
+                <div className="glass-card" style={{ padding: '0.5rem 0', background: 'var(--bg-surface)' }}>
+                    {rankings.map((user, i) => (
+                        <div
+                            key={i}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                padding: '1.25rem',
+                                borderBottom: i === rankings.length - 1 ? 'none' : '1px solid var(--border)',
+                                background: user.isMe ? 'rgba(49, 130, 246, 0.05)' : 'transparent'
+                            }}
+                        >
+                            <div style={{ width: '40px', fontSize: '1.1rem', fontWeight: 800, color: user.rank <= 3 ? 'var(--primary)' : 'var(--text-muted)', textAlign: 'center' }}>
+                                {user.rank}
                             </div>
-                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{user.status}</div>
+                            <div style={{ flex: 1, marginLeft: '1rem' }}>
+                                <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    {user.name}
+                                    {user.isMe && <span className="badge" style={{ fontSize: '0.65rem', padding: '1px 6px' }}>나</span>}
+                                </div>
+                                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{user.status}</div>
+                            </div>
+                            <div style={{ fontWeight: 700, color: '#fff', fontSize: '1rem' }}>
+                                {user.score.toLocaleString()}
+                            </div>
                         </div>
-                        <div style={{ textAlign: 'right' }}>
-                            <div style={{ fontWeight: 800 }}>{user.score} pts</div>
-                            <div style={{ fontSize: '0.65rem', color: user.delta.startsWith('+') ? 'var(--primary)' : '#ff4d4d' }}>{user.delta}</div>
-                        </div>
-                    </motion.div>
-                ))}
-            </div>
+                    ))}
+                </div>
 
-            <div style={{ marginTop: '2rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-                매월 1일 랭킹이 업데이트됩니다.
+                <div style={{ marginTop: '2.5rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                    매월 1일 자정, 새로운 시즌이 시작됩니다
+                </div>
             </div>
         </div>
     );

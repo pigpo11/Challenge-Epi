@@ -2,15 +2,13 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { useFitness } from './hooks/useFitness';
 import Onboarding from './pages/Onboarding';
 import Dashboard from './pages/Dashboard';
-import Recommendations from './pages/Recommendations';
-import Ranking from './pages/Ranking';
-import Admin from './pages/Admin';
+import Community from './pages/Community';
 import Settings from './pages/Settings';
 import './index.css';
 
 function App() {
   const { profile } = useFitness();
-  const isSetup = profile.bmr !== '';
+  const isSetup = profile.nickname && profile.height;
 
   return (
     <Router>
@@ -29,16 +27,8 @@ function App() {
             element={isSetup ? <Dashboard /> : <Navigate to="/onboarding" />}
           />
           <Route
-            path="/recommendations"
-            element={isSetup ? <Recommendations /> : <Navigate to="/onboarding" />}
-          />
-          <Route
-            path="/ranking"
-            element={<Ranking />}
-          />
-          <Route
-            path="/admin"
-            element={<Admin />}
+            path="/community"
+            element={isSetup ? <Community /> : <Navigate to="/onboarding" />}
           />
           <Route
             path="/settings"

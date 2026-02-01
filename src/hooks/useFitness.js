@@ -9,14 +9,17 @@ export const useFitness = () => {
       weight: '',
       gender: 'male',
       age: '25',
+      profileImage: null,
       activity: '1.2',
       deficit: '10',
       track: 'both', // 'diet', 'workout', 'both'
+      status: '오늘도 건강하게!',
       points: 0,
       certs: {
         diet: [], // up to 3 images
         workout: null // 1 image
       },
+      inbodyRecords: [], // { date, weight, muscle, fat }
       bmr: '',
       tdee: '',
       targetCalories: '',
@@ -24,20 +27,24 @@ export const useFitness = () => {
         carb: 0,
         protein: 0,
         fat: 0
-      }
+      },
+      todayPlan: null // Store AI recommended diet/workout
     };
 
     let data = saved ? JSON.parse(saved) : initialState;
 
-    // Monthly reset logic: Reset points on the 1st of every month
+    // Monthly reset logic: Reset points at the start of every month
     const today = new Date();
     const currentMonth = `${today.getFullYear()}-${today.getMonth() + 1}`;
     const lastReset = localStorage.getItem('last-reset-month');
 
-    if (today.getDate() === 1 && lastReset !== currentMonth) {
+    if (lastReset && lastReset !== currentMonth) {
       data.points = 0;
+      data.certs = { diet: [], workout: null }; // Reset daily certs too
       localStorage.setItem('last-reset-month', currentMonth);
       localStorage.setItem('fitness-profile', JSON.stringify(data));
+    } else if (!lastReset) {
+      localStorage.setItem('last-reset-month', currentMonth);
     }
 
     return data;
