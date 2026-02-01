@@ -1,6 +1,8 @@
-import { useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 
-export const useFitness = () => {
+const FitnessContext = createContext();
+
+export const FitnessProvider = ({ children }) => {
   const [profile, setProfile] = useState(() => {
     const saved = localStorage.getItem('fitness-profile');
     const initialState = {
@@ -65,15 +67,10 @@ export const useFitness = () => {
     const targetCalories = tdee * (1 - (parseInt(deficit) / 100));
 
     // Macro Calculation
-    // Protein: Male x2, Female x1.5
     const proteinGrams = gender === 'male' ? weight * 2 : weight * 1.5;
     const proteinKcal = proteinGrams * 4;
-
-    // Fat: 25% of target calories
     const fatKcal = targetCalories * 0.25;
     const fatGrams = fatKcal / 9;
-
-    // Carbs: Remainder
     const carbKcal = targetCalories - proteinKcal - fatKcal;
     const carbGrams = Math.max(0, carbKcal / 4);
 
@@ -94,5 +91,17 @@ export const useFitness = () => {
     return newProfile;
   }, []);
 
-  return { profile, setProfile, calculateFitness };
+  return (
+    <FitnessContext.Provider value={{ profile, setProfile, calculateFitness }}>
+      {children}
+    </FitnessContext.Provider>
+  );
+};
+
+export const useFitness = () => {
+  const context = useContext(FitnessContext);
+  if (!context) {
+    throw new Error('useFitness must be used within a FitnessProvider');
+  }
+  return context;
 };
