@@ -94,7 +94,7 @@ export const FitnessProvider = ({ children }) => {
     setProfile(newProfile);
     localStorage.setItem('fitness-profile', JSON.stringify(newProfile));
     return newProfile;
-  }, []);
+  }, [profile]);
 
   return (
     <FitnessContext.Provider value={{ profile, setProfile, calculateFitness }}>

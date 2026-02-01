@@ -22,9 +22,8 @@ const Onboarding = () => {
             // Calculate and save to localStorage
             calculateFitness(formData);
 
-            // Use window.location for a hard redirect to bypass any React Router state issues
-            // This ensures localStorage is read fresh on the new page load
-            window.location.href = '/dashboard';
+            // Navigate to dashboard
+            navigate('/dashboard');
         }
     };
 
