@@ -30,7 +30,8 @@ export const FitnessProvider = ({ children }) => {
         protein: 0,
         fat: 0
       },
-      todayPlan: null // Store AI recommended diet/workout
+      todayPlan: null, // Store AI recommended diet/workout
+      isSetup: false    // Flag to track onboarding completion
     };
 
     let data = saved ? JSON.parse(saved) : initialState;
@@ -86,7 +87,8 @@ export const FitnessProvider = ({ children }) => {
         protein: proteinGrams ? Math.round(proteinGrams) : profile.macros.protein,
         fat: fatGrams ? Math.round(fatGrams) : profile.macros.fat,
         carb: carbGrams ? Math.round(carbGrams) : profile.macros.carb
-      }
+      },
+      isSetup: true
     };
 
     setProfile(newProfile);

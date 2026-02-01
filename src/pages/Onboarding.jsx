@@ -19,13 +19,12 @@ const Onboarding = () => {
                 return;
             }
 
+            // Calculate and save to localStorage
             calculateFitness(formData);
 
-            // Brief delay to allow context state update to propagate
-            // and ensure App.jsx's isSetup check passes correctly
-            setTimeout(() => {
-                navigate('/dashboard', { replace: true });
-            }, 100);
+            // Use window.location for a hard redirect to bypass any React Router state issues
+            // This ensures localStorage is read fresh on the new page load
+            window.location.href = '/dashboard';
         }
     };
 
