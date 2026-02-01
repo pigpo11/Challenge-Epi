@@ -126,6 +126,8 @@ button:active {
   font-family: var(--font-main);
   font-size: 1rem;
   transition: all 0.2s;
+  box-sizing: border-box;
+  min-width: 0;
 }
 
 .input-group input:focus {

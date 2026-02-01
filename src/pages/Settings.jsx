@@ -182,18 +182,18 @@ const Settings = () => {
                                     <input type="text" value={userInfo.nickname} onChange={(e) => setUserInfo({ ...userInfo, nickname: e.target.value })} />
                                 </div>
 
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
-                                    <div className="input-group" style={{ marginBottom: 0 }}>
-                                        <label>키 (cm)</label>
-                                        <input type="number" value={userInfo.height} onChange={(e) => setUserInfo({ ...userInfo, height: e.target.value })} />
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '0.5rem', marginBottom: '1.25rem' }}>
+                                    <div className="input-group" style={{ marginBottom: 0, minWidth: 0 }}>
+                                        <label style={{ fontSize: '0.75rem' }}>키 (cm)</label>
+                                        <input type="number" value={userInfo.height} onChange={(e) => setUserInfo({ ...userInfo, height: e.target.value })} style={{ padding: '0.75rem 0.5rem', fontSize: '0.9rem' }} />
                                     </div>
-                                    <div className="input-group" style={{ marginBottom: 0 }}>
-                                        <label>몸무게 (kg)</label>
-                                        <input type="number" value={userInfo.weight} onChange={(e) => setUserInfo({ ...userInfo, weight: e.target.value })} />
+                                    <div className="input-group" style={{ marginBottom: 0, minWidth: 0 }}>
+                                        <label style={{ fontSize: '0.75rem' }}>몸무게 (kg)</label>
+                                        <input type="number" value={userInfo.weight} onChange={(e) => setUserInfo({ ...userInfo, weight: e.target.value })} style={{ padding: '0.75rem 0.5rem', fontSize: '0.9rem' }} />
                                     </div>
-                                    <div className="input-group" style={{ marginBottom: 0 }}>
-                                        <label>나이 (세)</label>
-                                        <input type="number" value={userInfo.age} onChange={(e) => setUserInfo({ ...userInfo, age: e.target.value })} />
+                                    <div className="input-group" style={{ marginBottom: 0, minWidth: 0 }}>
+                                        <label style={{ fontSize: '0.75rem' }}>나이 (세)</label>
+                                        <input type="number" value={userInfo.age} onChange={(e) => setUserInfo({ ...userInfo, age: e.target.value })} style={{ padding: '0.75rem 0.5rem', fontSize: '0.9rem' }} />
                                     </div>
                                 </div>
 
@@ -297,21 +297,21 @@ const Settings = () => {
                 </div>
 
                 {/* Status Message Edit */}
-                <div className="glass-card" style={{ marginBottom: '2rem', background: 'var(--bg-surface)', padding: '1.5rem' }}>
+                <div className="glass-card" style={{ marginBottom: '2rem', background: 'var(--bg-surface)', padding: '1.25rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '1rem', color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 600 }}>
                         <MessageSquareCode size={18} /> 랭킹 응원 메시지
                     </div>
-                    <div style={{ display: 'flex', gap: '0.75rem' }}>
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'nowrap' }}>
                         <input
                             type="text"
                             value={statusText}
                             onChange={(e) => setStatusText(e.target.value)}
                             placeholder="나를 위한 한마디"
-                            style={{ flex: 1, padding: '0.8rem 1rem', background: '#1c1c22', border: '1px solid var(--border)', borderRadius: '12px', fontSize: '1rem', color: '#fff' }}
+                            style={{ flex: '1 1 0', minWidth: 0, padding: '0.75rem 0.75rem', background: '#1c1c22', border: '1px solid var(--border)', borderRadius: '12px', fontSize: '0.95rem', color: '#fff' }}
                         />
                         <button
                             onClick={handleSaveStatus}
-                            style={{ padding: '0 1rem', background: 'var(--primary)', color: '#fff', borderRadius: '12px', fontSize: '0.9rem', fontWeight: 700 }}
+                            style={{ flexShrink: 0, padding: '0.75rem 1rem', background: 'var(--primary)', color: '#fff', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 700, whiteSpace: 'nowrap' }}
                         >
                             저장
                         </button>
@@ -339,18 +339,18 @@ const Settings = () => {
                                 className="glass-card"
                                 style={{ marginBottom: '1.5rem', background: '#1c1c22', overflow: 'hidden' }}
                             >
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
-                                    <div className="input-group" style={{ marginBottom: 0 }}>
-                                        <label style={{ fontSize: '0.75rem' }}>체중(kg)</label>
-                                        <input type="number" value={inbody.weight} onChange={(e) => setInbody({ ...inbody, weight: e.target.value })} placeholder="70" style={{ padding: '0.75rem' }} />
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '0.5rem', marginBottom: '1rem' }}>
+                                    <div className="input-group" style={{ marginBottom: 0, minWidth: 0 }}>
+                                        <label style={{ fontSize: '0.7rem' }}>체중(kg)</label>
+                                        <input type="number" value={inbody.weight} onChange={(e) => setInbody({ ...inbody, weight: e.target.value })} placeholder="70" style={{ padding: '0.6rem 0.5rem', fontSize: '0.9rem' }} />
                                     </div>
-                                    <div className="input-group" style={{ marginBottom: 0 }}>
-                                        <label style={{ fontSize: '0.75rem' }}>골격근(kg)</label>
-                                        <input type="number" value={inbody.muscle} onChange={(e) => setInbody({ ...inbody, muscle: e.target.value })} placeholder="30" style={{ padding: '0.75rem' }} />
+                                    <div className="input-group" style={{ marginBottom: 0, minWidth: 0 }}>
+                                        <label style={{ fontSize: '0.7rem' }}>골격근(kg)</label>
+                                        <input type="number" value={inbody.muscle} onChange={(e) => setInbody({ ...inbody, muscle: e.target.value })} placeholder="30" style={{ padding: '0.6rem 0.5rem', fontSize: '0.9rem' }} />
                                     </div>
-                                    <div className="input-group" style={{ marginBottom: 0 }}>
-                                        <label style={{ fontSize: '0.75rem' }}>체지방(%)</label>
-                                        <input type="number" value={inbody.fat} onChange={(e) => setInbody({ ...inbody, fat: e.target.value })} placeholder="20" style={{ padding: '0.75rem' }} />
+                                    <div className="input-group" style={{ marginBottom: 0, minWidth: 0 }}>
+                                        <label style={{ fontSize: '0.7rem' }}>체지방(%)</label>
+                                        <input type="number" value={inbody.fat} onChange={(e) => setInbody({ ...inbody, fat: e.target.value })} placeholder="20" style={{ padding: '0.6rem 0.5rem', fontSize: '0.9rem' }} />
                                     </div>
                                 </div>
                                 <button onClick={handleAddInBody} className="btn-primary" style={{ padding: '0.8rem', fontSize: '0.9rem' }}>기록 완료</button>
