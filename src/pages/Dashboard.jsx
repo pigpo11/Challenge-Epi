@@ -2,7 +2,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useRef, useState } from 'react';
 import { useFitness } from '../hooks/useFitness';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Activity, Utensils, Award, TrendingUp, Camera, Settings, ChevronRight, Home, Trophy, User, MessageCircle, X, ChevronLeft } from 'lucide-react';
+import { Activity, Utensils, Award, TrendingUp, Camera, Settings, ChevronRight, Home, Trophy, User, MessageCircle, X, ChevronLeft, Flame } from 'lucide-react';
 
 const Dashboard = () => {
     const { profile, setProfile } = useFitness();
@@ -104,8 +104,8 @@ const Dashboard = () => {
             <div className="container" style={{ paddingTop: '2rem', marginBottom: '1.5rem' }}>
                 <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <div style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--primary)', letterSpacing: '-0.02em', marginBottom: '4px' }}>
-                            Challenge Epi
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '1.4rem', fontWeight: 900, color: 'var(--primary)', letterSpacing: '-0.02em', marginBottom: '4px' }}>
+                            <Flame size={24} fill="var(--primary)" /> Challenge Epi
                         </div>
                         <h2 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0 }}>{profile.nickname}님</h2>
                     </div>
