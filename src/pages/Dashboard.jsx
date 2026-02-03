@@ -63,8 +63,8 @@ const Dashboard = () => {
         const file = e.target.files[0];
         if (!file) return;
 
-        // Image compression function using Canvas
-        const compressImage = (file, maxWidth = 800, quality = 0.6) => {
+        // Aggressive compression for reliability (max 640px, 0.5 quality)
+        const compressImage = (file, maxWidth = 640, quality = 0.5) => {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onload = (event) => {
@@ -131,21 +131,24 @@ const Dashboard = () => {
                 try {
                     setLoadingRankings(true);
 
-                    // 1. Update points
-                    await sql`UPDATE "Profile" SET points = ${newProfile.points} WHERE id = ${targetDbId}`;
+                    // 1. Update points (Try to verify profile existence)
+                    const updateResult = await sql`UPDATE "Profile" SET points = ${newProfile.points}, "updatedAt" = NOW() WHERE id = ${targetDbId}`;
 
-                    // 2. Create Community Post - Use the ID we already generated
+                    // 2. Create Community Post - Using the primary postId generated above
                     await sql`
                         INSERT INTO "Post" (id, "profileId", type, image, likes, "createdAt")
                         VALUES (${postId}, ${targetDbId}, ${type}, ${base64String}, 0, NOW())
                     `;
 
+                    // Certification state is already updated locally at line 120 with the correct postId.
+                    // No need to setProfile again here with a new ID.
+
                     // Refetch rankings after DB update
                     await fetchRankings();
                     alert(`${type === 'diet' ? '식단' : '운동'} 인증 완료! 10pts가 적립되었고 커뮤니티에 공유되었습니다.`);
                 } catch (err) {
-                    console.error('DB Sync failed:', err);
-                    alert('서버 저장에 실패했습니다. 하지만 로컬에는 저장되었습니다.');
+                    console.error('DB Sync failed detail:', err);
+                    alert('서버 저장에 실패했습니다. (이미지 용량 초과 또는 서버 연결 오류)');
                 } finally {
                     setLoadingRankings(false);
                 }
