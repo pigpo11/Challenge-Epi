@@ -74,6 +74,42 @@ export const FitnessProvider = ({ children }) => {
     return data;
   });
 
+  // Helper to re-calculate BMR, TDEE, Calories, and Macros from raw profile data
+  const getCalculatedStats = useCallback((data) => {
+    const { height, weight, gender, age, activity, deficit } = data;
+    if (!height || !weight || !age) return null;
+
+    // Mifflin-St Jeor Equation
+    let bmr;
+    if (gender === 'male') {
+      bmr = 10 * Number(weight) + 6.25 * Number(height) - 5 * Number(age) + 5;
+    } else {
+      bmr = 10 * Number(weight) + 6.25 * Number(height) - 5 * Number(age) - 161;
+    }
+
+    const tdee = bmr * parseFloat(activity || 1.2);
+    const targetCalories = tdee * (1 - (parseInt(deficit || 10) / 100));
+
+    // Macro Calculation
+    const proteinGrams = gender === 'male' ? weight * 2 : weight * 1.5;
+    const proteinKcal = proteinGrams * 4;
+    const fatKcal = targetCalories * 0.25;
+    const fatGrams = fatKcal / 9;
+    const carbKcal = targetCalories - proteinKcal - fatKcal;
+    const carbGrams = Math.max(0, carbKcal / 4);
+
+    return {
+      bmr: Math.round(bmr),
+      tdee: Math.round(tdee),
+      targetCalories: Math.round(targetCalories),
+      macros: {
+        protein: Math.round(proteinGrams),
+        fat: Math.round(fatGrams),
+        carb: Math.round(carbGrams)
+      }
+    };
+  }, []);
+
   // 1. Initial Load Effect: Sync from DB if dbId exists
   useEffect(() => {
     const syncFromDb = async () => {
@@ -82,9 +118,12 @@ export const FitnessProvider = ({ children }) => {
           const results = await sql`SELECT * FROM "Profile" WHERE id = ${profile.dbId}`;
           if (results && results[0]) {
             const dbProfile = results[0];
+            const stats = getCalculatedStats(dbProfile);
+
             setProfile(prev => ({
               ...prev,
               ...dbProfile,
+              ...stats, // Recalculate macros/calories on the fly
               dbId: dbProfile.id,
               isSetup: true
             }));
@@ -95,7 +134,7 @@ export const FitnessProvider = ({ children }) => {
       }
     };
     syncFromDb();
-  }, []); // Only once on mount
+  }, [getCalculatedStats]); // Depend on the memoized helper
 
   // 2. Persistence Effect: Keep localStorage in sync with profile state
   useEffect(() => {
@@ -132,7 +171,7 @@ export const FitnessProvider = ({ children }) => {
   }, [profile.dbId]);
 
   const logout = useCallback(() => {
-    setProfile({
+    const initialState = {
       dbId: '',
       nickname: '',
       height: '',
@@ -153,7 +192,8 @@ export const FitnessProvider = ({ children }) => {
       targetCalories: '',
       macros: { carb: 0, protein: 0, fat: 0 },
       isSetup: false
-    });
+    };
+    setProfile(initialState);
     localStorage.removeItem('fitness-profile');
     localStorage.removeItem('fitness-db-id');
     localStorage.removeItem('last-reset-month');
@@ -165,11 +205,13 @@ export const FitnessProvider = ({ children }) => {
       const results = await sql`SELECT * FROM "Profile" WHERE nickname = ${nickname} AND password = ${password}`;
       if (results && results[0]) {
         const dbProfile = results[0];
+        const stats = getCalculatedStats(dbProfile);
         const newProfile = {
           ...dbProfile,
+          ...stats,
           dbId: dbProfile.id,
           isSetup: true,
-          certs: { diet: [], workout: null }, // Daily certs remain local or fetched
+          certs: { diet: [], workout: null },
           inbodyRecords: []
         };
         setProfile(newProfile);
@@ -180,43 +222,15 @@ export const FitnessProvider = ({ children }) => {
       console.error('Login error:', err);
       return { success: false, message: '서버 오류가 발생했습니다.' };
     }
-  }, []);
+  }, [getCalculatedStats]);
 
   const calculateFitness = useCallback(async (data) => {
-    const { height, weight, gender, age, activity, deficit } = data;
-
-    // Mifflin-St Jeor Equation
-    let bmr;
-    if (gender === 'male') {
-      bmr = 10 * weight + 6.25 * height - 5 * age + 5;
-    } else {
-      bmr = 10 * weight + 6.25 * height - 5 * age - 161;
-    }
-
-    const tdee = bmr * parseFloat(activity);
-    const targetCalories = tdee * (1 - (parseInt(deficit) / 100));
-
-    // Macro Calculation
-    const proteinGrams = gender === 'male' ? weight * 2 : weight * 1.5;
-    const proteinKcal = proteinGrams * 4;
-    const fatKcal = targetCalories * 0.25;
-    const fatGrams = fatKcal / 9;
-    const carbKcal = targetCalories - proteinKcal - fatKcal;
-    const carbGrams = Math.max(0, carbKcal / 4);
+    const stats = getCalculatedStats(data);
 
     const newProfile = {
       ...profile,
       ...data,
-      nickname: data.nickname || profile.nickname,
-      height: parseFloat(data.height) || profile.height,
-      bmr: bmr ? Math.round(bmr) : profile.bmr,
-      tdee: tdee ? Math.round(tdee) : profile.tdee,
-      targetCalories: targetCalories ? Math.round(targetCalories) : profile.targetCalories,
-      macros: {
-        protein: proteinGrams ? Math.round(proteinGrams) : profile.macros.protein,
-        fat: fatGrams ? Math.round(fatGrams) : profile.macros.fat,
-        carb: carbGrams ? Math.round(carbGrams) : profile.macros.carb
-      },
+      ...stats,
       isSetup: true
     };
 
@@ -259,7 +273,7 @@ export const FitnessProvider = ({ children }) => {
 
     setProfile(newProfile);
     return newProfile;
-  }, [profile]);
+  }, [profile, getCalculatedStats]);
 
   const updatePoints = useCallback(async (amount) => {
     setProfile(prev => {

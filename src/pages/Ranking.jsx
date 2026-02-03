@@ -61,7 +61,7 @@ const Ranking = () => {
                     </div>
                     <div style={{ textAlign: 'right' }}>
                         <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '4px' }}>획득 포인트</div>
-                        <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--primary)' }}>{profile.points.toLocaleString()}</div>
+                        <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--primary)' }}>{(Number(profile.points) || 0).toLocaleString()}</div>
                     </div>
                 </div>
 

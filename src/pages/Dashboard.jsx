@@ -171,7 +171,7 @@ const Dashboard = () => {
                         </div>
                     </div>
                     <div style={{ fontSize: '2.5rem', fontWeight: 800, letterSpacing: '-0.03em' }}>
-                        {profile.points.toLocaleString()}<span style={{ fontSize: '1.1rem', marginLeft: '4px', fontWeight: 500 }}>pts</span>
+                        {(Number(profile.points) || 0).toLocaleString()}<span style={{ fontSize: '1.1rem', marginLeft: '4px', fontWeight: 500 }}>pts</span>
                     </div>
                 </div>
             </div>

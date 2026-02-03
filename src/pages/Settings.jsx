@@ -112,6 +112,13 @@ const Settings = () => {
     };
 
     useEffect(() => {
+        if (!isEditingInfo) {
+            setUserInfo(profile);
+            setStatusText(profile.status || '오늘도 건강하게!');
+        }
+    }, [profile, isEditingInfo]);
+
+    useEffect(() => {
         const fetchUserPosts = async () => {
             if (!profile.dbId) return;
             try {
@@ -124,6 +131,7 @@ const Settings = () => {
 
                 // Group by date string (YYYY-MM-DD)
                 const groups = results.reduce((acc, post) => {
+                    if (!post.time) return acc;
                     const date = new Date(post.time).toLocaleDateString('ko-KR', {
                         month: 'long',
                         day: 'numeric',
