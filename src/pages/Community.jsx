@@ -214,7 +214,7 @@ const Community = () => {
     };
 
     const handleDeletePost = async (post) => {
-        if (!window.confirm('인증 게시글을 삭제하시겠습니까? 적립된 포인트(10pts)도 회수됩니다.')) return;
+        if (!window.confirm('인증 게시글을 삭제하시겠습니까?\n적립된 포인트(10pts)도 회수됩니다.')) return;
 
         // 1. UI Update
         setPosts(prev => prev.filter(p => p.id !== post.id));

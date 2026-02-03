@@ -157,7 +157,7 @@ const Dashboard = () => {
     };
 
     const handleDeleteCert = async (type, index) => {
-        if (!window.confirm('기록을 삭제하시겠습니까? 적립된 포인트(10pts)도 회수됩니다.')) return;
+        if (!window.confirm('기록을 삭제하시겠습니까?\n적립된 포인트(10pts)도 회수됩니다.')) return;
 
         const imageToDelete = type === 'diet' ? profile.certs.diet[index] : profile.certs.workout;
         if (!imageToDelete) return;
