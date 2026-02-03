@@ -158,7 +158,8 @@ input[type="range"] {
   border-radius: 3px;
   outline: none;
   cursor: pointer;
-  padding: 0 !important; /* Override .input-group padding */
+  padding: 0 !important;
+  /* Override .input-group padding */
   margin: 1rem 0;
   border: none !important;
 }
@@ -254,6 +255,20 @@ input[type="range"]::-moz-range-thumb {
 
 .slide-up {
   animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
 }
 
 /* Custom Scrollbar */

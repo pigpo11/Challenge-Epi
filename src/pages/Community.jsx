@@ -173,7 +173,7 @@ const Community = () => {
                     {loading ? (
                         <div style={{ textAlign: 'center', padding: '4rem 0' }}>
                             <Loader2 className="animate-spin" size={32} color="var(--primary)" style={{ margin: '0 auto' }} />
-                            <p style={{ marginTop: '1rem', color: 'var(--text-muted)' }}>인증 피드를 불러오는 중...</p>
+                            <p style={{ marginTop: '1rem', color: 'var(--text-muted)' }}>피드를 불러오는 중...</p>
                         </div>
                     ) : posts.length === 0 ? (
                         <div style={{ textAlign: 'center', padding: '4rem 0', color: 'var(--text-muted)' }}>
