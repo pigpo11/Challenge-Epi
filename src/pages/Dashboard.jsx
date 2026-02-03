@@ -186,7 +186,7 @@ const Dashboard = () => {
                 >
                     <div style={{ flex: 1 }}>
                         <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--primary)', marginBottom: '4px' }}>오늘의 식단/운동 인증하기</div>
-                        <div style={{ fontSize: '0.95rem', color: 'rgba(255,255,255,0.7)' }}>기록하고 매일 10포인트 적립!</div>
+                        <div style={{ fontSize: '0.95rem', color: 'rgba(255,255,255,0.7)' }}>기록하고 10포인트 적립🔥</div>
                     </div>
                     <div style={{ width: '52px', height: '52px', borderRadius: '18px', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', boxShadow: '0 8px 16px rgba(49, 130, 246, 0.4)' }}>
                         <Camera size={26} />
