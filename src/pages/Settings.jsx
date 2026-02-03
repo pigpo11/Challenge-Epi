@@ -1,12 +1,14 @@
 import { useNavigate } from 'react-router-dom';
 import { useFitness } from '../hooks/useFitness';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, Camera, MessageSquareCode, Plus, Activity, Trash2, User, Save, Edit2, TrendingDown, Target, Zap, Utensils, X } from 'lucide-react';
-import { useState, useRef } from 'react';
+import { ChevronLeft, Camera, MessageSquareCode, Plus, Activity, Trash2, User, Save, Edit2, TrendingDown, Target, Zap, Utensils, X, Loader2 } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import BottomNav from '../components/BottomNav';
+import sql from '../services/database';
 
 const Settings = () => {
     const navigate = useNavigate();
-    const { profile, setProfile, calculateFitness } = useFitness();
+    const { profile, setProfile, calculateFitness, logout } = useFitness();
     const [statusText, setStatusText] = useState(profile.status || '오늘도 건강하게!');
     const [showInBodyForm, setShowInBodyForm] = useState(false);
     const [inbody, setInbody] = useState({ weight: profile.weight, muscle: '', fat: '' });
@@ -15,18 +17,20 @@ const Settings = () => {
     // User Info Edit State
     const [isEditingInfo, setIsEditingInfo] = useState(false);
     const [userInfo, setUserInfo] = useState(profile);
+    const [userPosts, setUserPosts] = useState([]);
+    const [loadingPosts, setLoadingPosts] = useState(true);
 
-    const resetData = () => {
-        if (window.confirm('모든 정보가 삭제됩니다. 계속할까요?')) {
-            localStorage.clear();
-            window.location.href = '/';
+    const handleLogout = () => {
+        if (window.confirm('로그아웃 하시겠습니까?')) {
+            logout();
+            navigate('/login');
         }
     };
 
     const handleSaveStatus = () => {
         const newProfile = { ...profile, status: statusText };
         saveProfile(newProfile);
-        alert('응원 메시지가 변경되었습니다.');
+        alert('상태 메시지가 변경되었습니다.');
     };
 
     const handleSaveUserInfo = () => {
@@ -98,6 +102,39 @@ const Settings = () => {
         saveProfile(newProfile);
     };
 
+    useEffect(() => {
+        const fetchUserPosts = async () => {
+            if (!profile.dbId) return;
+            try {
+                const results = await sql`
+                    SELECT id, type, image, "createdAt" as time
+                    FROM "Post"
+                    WHERE "profileId" = ${profile.dbId}
+                    ORDER BY "createdAt" DESC
+                `;
+
+                // Group by date string (YYYY-MM-DD)
+                const groups = results.reduce((acc, post) => {
+                    const date = new Date(post.time).toLocaleDateString('ko-KR', {
+                        month: 'long',
+                        day: 'numeric',
+                        weekday: 'short'
+                    });
+                    if (!acc[date]) acc[date] = [];
+                    acc[date].push(post);
+                    return acc;
+                }, {});
+
+                setUserPosts(Object.entries(groups));
+            } catch (err) {
+                console.error('Failed to fetch user posts:', err);
+            } finally {
+                setLoadingPosts(false);
+            }
+        };
+        fetchUserPosts();
+    }, [profile.dbId]);
+
     const activityLevels = [
         { val: '1.2', label: '거의 없음', sub: '좌식생활, 운동 안 함' },
         { val: '1.375', label: '활동량 적음', sub: '주 1~3회 운동' },
@@ -112,35 +149,40 @@ const Settings = () => {
                 <button onClick={() => navigate(-1)} style={{ background: 'none', color: '#fff' }}>
                     <ChevronLeft size={28} />
                 </button>
-                <h1 style={{ fontSize: '1.3rem', marginBottom: 0 }}>내 정보 설정</h1>
+                <h1 style={{ fontSize: '1.3rem', marginBottom: 0 }}>내 정보</h1>
             </header>
 
             <div className="container">
                 {/* Profile Main Section */}
                 <div style={{ padding: '1rem 0', marginBottom: '1.5rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
-                        <div
-                            onClick={() => profileInputRef.current?.click()}
-                            style={{ position: 'relative', cursor: 'pointer' }}
-                        >
-                            <div style={{ width: '68px', height: '68px', background: 'var(--bg-surface)', borderRadius: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', overflow: 'hidden', border: '1px solid var(--border)' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+                            <div
+                                onClick={() => profileInputRef.current?.click()}
+                                style={{ width: '68px', height: '68px', background: 'var(--bg-surface)', borderRadius: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', overflow: 'hidden', border: '1px solid var(--border)', cursor: 'pointer' }}
+                            >
                                 {profile.profileImage ? (
                                     <img src={profile.profileImage} alt="프로필" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                 ) : (
                                     <User size={30} color="var(--text-muted)" />
                                 )}
                             </div>
-                            <div style={{ position: 'absolute', bottom: '-4px', right: '-4px', background: 'var(--primary)', color: '#fff', padding: '5px', borderRadius: '50%', border: '2px solid var(--bg-dark)' }}>
-                                <Camera size={12} />
-                            </div>
-                            {profile.profileImage && (
-                                <div
-                                    onClick={handleDeleteProfileImage}
-                                    style={{ position: 'absolute', top: '-4px', right: '-4px', background: '#ff4d4d', color: '#fff', padding: '4px', borderRadius: '50%', border: '2px solid var(--bg-dark)', zIndex: 2 }}
+                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', justifyContent: 'center' }}>
+                                <button
+                                    onClick={() => profileInputRef.current?.click()}
+                                    style={{ background: 'none', border: 'none', color: '#fff', fontSize: '0.75rem', fontWeight: 600, padding: '4px', opacity: 0.8 }}
                                 >
-                                    <X size={10} />
-                                </div>
-                            )}
+                                    추가/변경
+                                </button>
+                                {profile.profileImage && (
+                                    <button
+                                        onClick={handleDeleteProfileImage}
+                                        style={{ background: 'none', border: 'none', color: '#fff', fontSize: '0.75rem', fontWeight: 600, padding: '4px', opacity: 0.8 }}
+                                    >
+                                        삭제
+                                    </button>
+                                )}
+                            </div>
                             <input
                                 type="file"
                                 ref={profileInputRef}
@@ -213,7 +255,9 @@ const Settings = () => {
                                     <input
                                         type="range" min="1" max="20" value={userInfo.deficit}
                                         onChange={(e) => setUserInfo({ ...userInfo, deficit: e.target.value })}
-                                        style={{ width: '100%' }}
+                                        style={{
+                                            background: `linear-gradient(to right, var(--primary) 0%, var(--primary) ${(userInfo.deficit - 1) / (20 - 1) * 100}%, var(--border) ${(userInfo.deficit - 1) / (20 - 1) * 100}%, var(--border) 100%)`
+                                        }}
                                     />
                                 </div>
 
@@ -255,6 +299,28 @@ const Settings = () => {
                             </div>
                         )}
                     </AnimatePresence>
+
+                    {/* Status Message Edit (Moved here) */}
+                    <div className="glass-card" style={{ marginTop: '1.5rem', background: 'var(--bg-surface)', padding: '1.25rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '1rem', color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 600 }}>
+                            <MessageSquareCode size={18} /> 상태 메시지
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'nowrap' }}>
+                            <input
+                                type="text"
+                                value={statusText}
+                                onChange={(e) => setStatusText(e.target.value)}
+                                placeholder="나를 위한 한마디"
+                                style={{ flex: '1 1 0', minWidth: 0, padding: '0.75rem 0.75rem', background: '#1c1c22', border: '1px solid var(--border)', borderRadius: '12px', fontSize: '0.95rem', color: '#fff' }}
+                            />
+                            <button
+                                onClick={handleSaveStatus}
+                                style={{ flexShrink: 0, padding: '0.75rem 1rem', background: 'var(--primary)', color: '#fff', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 700, whiteSpace: 'nowrap' }}
+                            >
+                                저장
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Health Analytics Summary */}
@@ -296,27 +362,6 @@ const Settings = () => {
                     </div>
                 </div>
 
-                {/* Status Message Edit */}
-                <div className="glass-card" style={{ marginBottom: '2rem', background: 'var(--bg-surface)', padding: '1.25rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '1rem', color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 600 }}>
-                        <MessageSquareCode size={18} /> 랭킹 응원 메시지
-                    </div>
-                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'nowrap' }}>
-                        <input
-                            type="text"
-                            value={statusText}
-                            onChange={(e) => setStatusText(e.target.value)}
-                            placeholder="나를 위한 한마디"
-                            style={{ flex: '1 1 0', minWidth: 0, padding: '0.75rem 0.75rem', background: '#1c1c22', border: '1px solid var(--border)', borderRadius: '12px', fontSize: '0.95rem', color: '#fff' }}
-                        />
-                        <button
-                            onClick={handleSaveStatus}
-                            style={{ flexShrink: 0, padding: '0.75rem 1rem', background: 'var(--primary)', color: '#fff', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 700, whiteSpace: 'nowrap' }}
-                        >
-                            저장
-                        </button>
-                    </div>
-                </div>
 
                 {/* InBody Section */}
                 <div style={{ marginBottom: '2.5rem' }}>
@@ -393,14 +438,64 @@ const Settings = () => {
                     </div>
                 </div>
 
-                {/* Danger Zone */}
+                {/* Meal/Workout Gallery */}
+                <div style={{ marginBottom: '2.5rem' }}>
+                    <h3 style={{ fontSize: '1.1rem', marginBottom: '1.25rem', paddingLeft: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Utensils size={18} color="var(--primary)" /> 인증 히스토리
+                    </h3>
+
+                    {loadingPosts ? (
+                        <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
+                            <Loader2 className="animate-spin" size={24} color="var(--primary)" />
+                        </div>
+                    ) : userPosts.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '3rem 1.5rem', border: '1px dashed var(--border)', borderRadius: '20px', color: 'var(--text-muted)' }}>
+                            <Camera size={32} style={{ marginBottom: '0.75rem', opacity: 0.3 }} />
+                            <p style={{ fontSize: '0.9rem', margin: 0 }}>아직 인증한 기록이 없습니다.</p>
+                        </div>
+                    ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                            {userPosts.map(([date, items]) => (
+                                <div key={date}>
+                                    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.75rem', paddingLeft: '4px' }}>
+                                        {date}
+                                    </div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                                        {items.map((post) => (
+                                            <div key={post.id} style={{ position: 'relative', aspectRatio: '1/1', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border)' }}>
+                                                <img src={post.image} alt="인증" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                <div style={{
+                                                    position: 'absolute',
+                                                    bottom: 0,
+                                                    left: 0,
+                                                    width: '100%',
+                                                    padding: '4px',
+                                                    background: 'linear-gradient(transparent, rgba(0,0,0,0.6))',
+                                                    fontSize: '0.65rem',
+                                                    color: '#fff',
+                                                    textAlign: 'center',
+                                                    fontWeight: 600
+                                                }}>
+                                                    {post.type === 'diet' ? '식단' : '운동'}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                {/* Logout */}
                 <button
-                    onClick={resetData}
+                    onClick={handleLogout}
                     style={{ background: 'none', color: '#ff4d4d', fontSize: '0.95rem', fontWeight: 600, width: '100%', padding: '1rem', marginTop: '2rem' }}
                 >
-                    데이터 초기화 및 로그아웃
+                    로그아웃
                 </button>
             </div>
+            <BottomNav />
         </div>
     );
 };

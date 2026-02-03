@@ -2,7 +2,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useRef, useState } from 'react';
 import { useFitness } from '../hooks/useFitness';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Activity, Utensils, Award, TrendingUp, Camera, Settings, ChevronRight, Home, Trophy, User, MessageCircle, X, ChevronLeft, Flame } from 'lucide-react';
+import { Activity, Utensils, Award, TrendingUp, Camera, Settings, ChevronRight, Home, Trophy, User, MessageCircle, X, ChevronLeft, Flame, Loader2 } from 'lucide-react';
+import sql from '../services/database';
+import BottomNav from '../components/BottomNav';
 
 const Dashboard = () => {
     const { profile, setProfile } = useFitness();
@@ -10,14 +12,32 @@ const Dashboard = () => {
     const dietInputRef = useRef(null);
     const workoutInputRef = useRef(null);
     const [showCertOverlay, setShowCertOverlay] = useState(false);
+    const [rankings, setRankings] = useState([]);
+    const [loadingRankings, setLoadingRankings] = useState(true);
 
-    const rankings = [
-        { rank: 1, name: '에피소드 서초 김OO', score: 980, status: '식단 완벽' },
-        { rank: 2, name: '에피소드 강남 박OO', score: 955, status: '운동 고수' },
-        { rank: 3, name: '에피소드 서초 이OO', score: 920, status: '단백질 빌런' },
-        { rank: 4, name: profile.nickname || '나 (본인)', score: profile.points || 0, isMe: true, status: profile.status || '파이팅!' },
-        { rank: 5, name: '에피소드 강남 최OO', score: 850, status: '유산소 왕' },
-    ];
+    useState(() => {
+        const fetchRankings = async () => {
+            try {
+                const results = await sql`
+                    SELECT nickname as name, points as score, status, id
+                    FROM "Profile"
+                    ORDER BY points DESC
+                    LIMIT 5
+                `;
+                setRankings(results.map((u, i) => ({
+                    ...u,
+                    rank: i + 1,
+                    isMe: u.id === profile.dbId
+                })));
+            } catch (err) {
+                console.error('Failed to fetch rankings:', err);
+            } finally {
+                setLoadingRankings(false);
+            }
+        };
+        fetchRankings();
+    }, [profile.points]);
+
 
     const handleCertify = (type) => {
         if (type === 'diet') {
@@ -56,19 +76,23 @@ const Dashboard = () => {
             setProfile(newProfile);
             localStorage.setItem('fitness-profile', JSON.stringify(newProfile));
 
-            // 시뮬레이션: 커뮤니티에 포스트 추가
-            const newPost = {
-                id: Date.now(),
-                user: profile.nickname,
-                type: type,
-                image: base64String,
-                content: type === 'diet' ? '오늘의 건강한 식단 인증합니다! 🥗' : '오늘의 운동 완료! 뿌듯하네요 💪',
-                time: '방금 전',
-                likes: 0,
-                comments: []
+            // Sync to DB
+            const syncPost = async () => {
+                if (!profile.dbId) return;
+                try {
+                    // Update Points in Profile
+                    await sql`UPDATE "Profile" SET points = ${newProfile.points} WHERE id = ${profile.dbId}`;
+
+                    // Create Post
+                    await sql`
+                        INSERT INTO "Post" (id, "profileId", type, image, likes, "createdAt")
+                        VALUES (gen_random_uuid(), ${profile.dbId}, ${type}, ${base64String}, 0, NOW())
+                    `;
+                } catch (err) {
+                    console.error('DB Sync failed:', err);
+                }
             };
-            const savedPosts = JSON.parse(localStorage.getItem('community-posts') || '[]');
-            localStorage.setItem('community-posts', JSON.stringify([newPost, ...savedPosts]));
+            syncPost();
 
             alert(`${type === 'diet' ? '식단' : '운동'} 인증 완료! 10pts가 적립되었고 커뮤니티에 공유되었습니다.`);
         };
@@ -150,40 +174,50 @@ const Dashboard = () => {
                     <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0 }}>실시간 챌린지 랭킹 👑</h3>
                     <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>매월 1일 갱신</div>
                 </div>
-                <div className="glass-card" style={{ padding: '0.5rem 0', background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
-                    {rankings.slice(0, 5).map((user, i) => (
-                        <div
-                            key={i}
-                            style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                padding: '1rem 1.25rem',
-                                borderBottom: i === 4 ? 'none' : '1px solid var(--border)',
-                                background: user.isMe ? 'rgba(49, 130, 246, 0.08)' : 'transparent'
-                            }}
-                        >
-                            <div style={{ width: '30px', fontSize: '1.1rem', fontWeight: 900, color: i < 3 ? 'var(--primary)' : 'var(--text-muted)', textAlign: 'center' }}>
-                                {user.rank}
-                            </div>
-                            <div style={{ marginLeft: '1rem', width: '36px', height: '36px', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', overflow: 'hidden', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                {user.isMe && profile.profileImage ? (
-                                    <img src={profile.profileImage} alt="프로필" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                ) : (
-                                    <User size={18} color="var(--text-muted)" />
-                                )}
-                            </div>
-                            <div style={{ flex: 1, marginLeft: '0.75rem' }}>
-                                <div style={{ fontWeight: 700, fontSize: '0.95rem', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    {user.name}
-                                    {user.isMe && <span style={{ fontSize: '0.6rem', background: 'var(--primary)', color: '#fff', padding: '1px 5px', borderRadius: '4px' }}>나</span>}
-                                </div>
-                                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{user.status}</div>
-                            </div>
-                            <div style={{ fontWeight: 800, color: '#fff', fontSize: '0.95rem' }}>
-                                {user.score.toLocaleString()} <span style={{ fontSize: '0.75rem', fontWeight: 400, color: 'var(--text-muted)' }}>pts</span>
-                            </div>
+                <div className="glass-card" style={{ padding: '0.5rem 0', background: 'var(--bg-surface)', border: '1px solid var(--border)', minHeight: '100px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                    {loadingRankings ? (
+                        <div style={{ display: 'flex', justifyContent: 'center', padding: '1rem' }}>
+                            <Loader2 className="animate-spin" size={20} color="var(--primary)" />
                         </div>
-                    ))}
+                    ) : rankings.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                            아직 데이터가 없습니다.
+                        </div>
+                    ) : (
+                        rankings.map((user, i) => (
+                            <div
+                                key={i}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    padding: '1rem 1.25rem',
+                                    borderBottom: i === rankings.length - 1 ? 'none' : '1px solid var(--border)',
+                                    background: user.isMe ? 'rgba(49, 130, 246, 0.08)' : 'transparent'
+                                }}
+                            >
+                                <div style={{ width: '30px', fontSize: '1.1rem', fontWeight: 900, color: i < 3 ? 'var(--primary)' : 'var(--text-muted)', textAlign: 'center' }}>
+                                    {user.rank}
+                                </div>
+                                <div style={{ marginLeft: '1rem', width: '36px', height: '36px', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', overflow: 'hidden', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    {user.isMe && profile.profileImage ? (
+                                        <img src={profile.profileImage} alt="프로필" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    ) : (
+                                        <User size={18} color="var(--text-muted)" />
+                                    )}
+                                </div>
+                                <div style={{ flex: 1, marginLeft: '0.75rem' }}>
+                                    <div style={{ fontWeight: 700, fontSize: '0.95rem', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        {user.name}
+                                        {user.isMe && <span style={{ fontSize: '0.6rem', background: 'var(--primary)', color: '#fff', padding: '1px 5px', borderRadius: '4px' }}>나</span>}
+                                    </div>
+                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{user.status}</div>
+                                </div>
+                                <div style={{ fontWeight: 800, color: '#fff', fontSize: '0.95rem' }}>
+                                    {user.score.toLocaleString()} <span style={{ fontSize: '0.75rem', fontWeight: 400, color: 'var(--text-muted)' }}>pts</span>
+                                </div>
+                            </div>
+                        ))
+                    )}
                 </div>
             </div>
 
@@ -291,21 +325,7 @@ const Dashboard = () => {
                 )}
             </AnimatePresence>
 
-            {/* Bottom Navigation */}
-            <nav className="bottom-nav">
-                <Link to="/dashboard" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', color: 'var(--primary)', textDecoration: 'none', gap: '4px' }}>
-                    <Home size={22} />
-                    <span style={{ fontSize: '0.65rem', fontWeight: 600 }}>홈</span>
-                </Link>
-                <Link to="/community" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', color: 'var(--text-muted)', textDecoration: 'none', gap: '4px' }}>
-                    <MessageCircle size={22} />
-                    <span style={{ fontSize: '0.65rem', fontWeight: 600 }}>커뮤니티</span>
-                </Link>
-                <Link to="/settings" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', color: 'var(--text-muted)', textDecoration: 'none', gap: '4px' }}>
-                    <User size={22} />
-                    <span style={{ fontSize: '0.65rem', fontWeight: 600 }}>정보</span>
-                </Link>
-            </nav>
+            <BottomNav />
         </div>
     );
 };

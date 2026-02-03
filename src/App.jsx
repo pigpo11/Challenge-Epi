@@ -1,14 +1,17 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useFitness } from './hooks/useFitness';
+import Login from './pages/Login';
 import Onboarding from './pages/Onboarding';
 import Dashboard from './pages/Dashboard';
 import Community from './pages/Community';
 import Settings from './pages/Settings';
+import Ranking from './pages/Ranking';
+import Recommendations from './pages/Recommendations';
 import './index.css';
 
 function App() {
   const { profile } = useFitness();
-  const isSetup = Boolean(profile?.isSetup);
+  const isAuthenticated = Boolean(profile?.dbId);
 
   return (
     <Router>
@@ -16,23 +19,35 @@ function App() {
         <Routes>
           <Route
             path="/"
-            element={isSetup ? <Navigate to="/dashboard" /> : <Onboarding />}
+            element={isAuthenticated ? <Navigate to="/dashboard" /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/login"
+            element={isAuthenticated ? <Navigate to="/dashboard" /> : <Login />}
           />
           <Route
             path="/onboarding"
-            element={<Onboarding />}
+            element={isAuthenticated ? <Navigate to="/dashboard" /> : <Onboarding />}
           />
           <Route
             path="/dashboard"
-            element={isSetup ? <Dashboard /> : <Navigate to="/onboarding" />}
+            element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />}
           />
           <Route
             path="/community"
-            element={isSetup ? <Community /> : <Navigate to="/onboarding" />}
+            element={isAuthenticated ? <Community /> : <Navigate to="/login" />}
           />
           <Route
             path="/settings"
-            element={isSetup ? <Settings /> : <Navigate to="/onboarding" />}
+            element={isAuthenticated ? <Settings /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/ranking"
+            element={isAuthenticated ? <Ranking /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/recommendations"
+            element={isAuthenticated ? <Recommendations /> : <Navigate to="/login" />}
           />
         </Routes>
       </div>

@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,8 +7,8 @@ datasource db {
 }
 
 model Profile {
-  id             String    @id @default(uuid())
-  nickname       String    @unique
+  id             String          @id @default(uuid())
+  nickname       String          @unique
   gender         String?
   height         Float?
   weight         Float?
@@ -19,59 +16,59 @@ model Profile {
   activity       Float?
   deficit        Int?
   track          String?
-  points         Int       @default(0)
+  points         Int             @default(0)
+  password       String?         // 6-digit password
   bmr            Float?
   targetCalories Float?
-  profileImage   String?   @db.Text
-  status         String?   @default("오늘도 건강하게!")
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-
-  inbodyRecords  InBodyRecord[]
+  profileImage   String?
+  status         String?         @default("오늘도 건강하게!")
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
   certifications Certification[]
-  posts          Post[]
   comments       Comment[]
+  inbodyRecords  InBodyRecord[]
+  posts          Post[]
 }
 
 model InBodyRecord {
   id        String   @id @default(uuid())
   profileId String
-  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
   weight    Float
   muscle    Float
   fat       Float
   date      String
   day       String
   createdAt DateTime @default(now())
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
 }
 
 model Certification {
   id            String   @id @default(uuid())
   profileId     String
-  profile       Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
-  type          String   // 'diet', 'workout'
-  imageUrl      String   @db.Text
+  type          String
+  imageUrl      String
   pointsAwarded Int      @default(10)
   createdAt     DateTime @default(now())
+  profile       Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
 }
 
 model Post {
   id        String    @id @default(uuid())
   profileId String
-  profile   Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
-  type      String    // 'diet', 'workout'
-  image     String    @db.Text
+  type      String
+  image     String
   likes     Int       @default(0)
-  comments  Comment[]
   createdAt DateTime  @default(now())
+  comments  Comment[]
+  profile   Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
 }
 
 model Comment {
   id        String   @id @default(uuid())
   postId    String
-  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
   profileId String
-  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
   text      String
   createdAt DateTime @default(now())
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
 }
