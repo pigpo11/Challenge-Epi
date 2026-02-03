@@ -63,8 +63,8 @@ const Dashboard = () => {
         const file = e.target.files[0];
         if (!file) return;
 
-        // Aggressive compression for reliability (max 640px, 0.5 quality)
-        const compressImage = (file, maxWidth = 640, quality = 0.5) => {
+        // Ultra-aggressive compression for high reliability (480px, 0.4 quality)
+        const compressImage = (file, maxWidth = 480, quality = 0.4) => {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onload = (event) => {
@@ -148,7 +148,7 @@ const Dashboard = () => {
                     alert(`${type === 'diet' ? '식단' : '운동'} 인증 완료! 10pts가 적립되었고 커뮤니티에 공유되었습니다.`);
                 } catch (err) {
                     console.error('DB Sync failed detail:', err);
-                    alert('서버 저장에 실패했습니다. (이미지 용량 초과 또는 서버 연결 오류)');
+                    alert(`서버 저장 실패: ${err.message || '알 수 없는 오류'}\n(이미지 용량을 줄이거나 네트워크를 확인해주세요)`);
                 } finally {
                     setLoadingRankings(false);
                 }
