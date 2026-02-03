@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { useFitness } from '../hooks/useFitness';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Activity, Utensils, Award, TrendingUp, Camera, Settings, ChevronRight, Home, Trophy, User, MessageCircle, X, ChevronLeft, Flame, Loader2 } from 'lucide-react';
@@ -15,28 +15,29 @@ const Dashboard = () => {
     const [rankings, setRankings] = useState([]);
     const [loadingRankings, setLoadingRankings] = useState(true);
 
-    useState(() => {
-        const fetchRankings = async () => {
-            try {
-                const results = await sql`
-                    SELECT nickname as name, points as score, status, id
-                    FROM "Profile"
-                    ORDER BY points DESC
-                    LIMIT 5
-                `;
-                setRankings(results.map((u, i) => ({
-                    ...u,
-                    rank: i + 1,
-                    isMe: u.id === profile.dbId
-                })));
-            } catch (err) {
-                console.error('Failed to fetch rankings:', err);
-            } finally {
-                setLoadingRankings(false);
-            }
-        };
+    const fetchRankings = async () => {
+        try {
+            const results = await sql`
+                SELECT nickname as name, points as score, status, id
+                FROM "Profile"
+                ORDER BY points DESC
+                LIMIT 5
+            `;
+            setRankings(results.map((u, i) => ({
+                ...u,
+                rank: i + 1,
+                isMe: u.id === profile.dbId
+            })));
+        } catch (err) {
+            console.error('Failed to fetch rankings:', err);
+        } finally {
+            setLoadingRankings(false);
+        }
+    };
+
+    useEffect(() => {
         fetchRankings();
-    }, [profile.points]);
+    }, [profile.dbId]);
 
 
     const handleCertify = (type) => {
@@ -78,18 +79,32 @@ const Dashboard = () => {
 
             // Sync to DB
             const syncPost = async () => {
-                if (!profile.dbId) return;
-                try {
-                    // Update Points in Profile
-                    await sql`UPDATE "Profile" SET points = ${newProfile.points} WHERE id = ${profile.dbId}`;
+                const targetDbId = newProfile.dbId || profile.dbId;
+                if (!targetDbId) {
+                    console.error('No DB ID found for sync');
+                    return;
+                }
 
-                    // Create Post
+                try {
+                    setLoadingRankings(true);
+
+                    // 1. Ensure Profile exists/up-to-date in DB
+                    // We update points first
+                    await sql`UPDATE "Profile" SET points = ${newProfile.points} WHERE id = ${targetDbId}`;
+
+                    // 2. Create Community Post
                     await sql`
                         INSERT INTO "Post" (id, "profileId", type, image, likes, "createdAt")
-                        VALUES (gen_random_uuid(), ${profile.dbId}, ${type}, ${base64String}, 0, NOW())
+                        VALUES (gen_random_uuid(), ${targetDbId}, ${type}, ${base64String}, 0, NOW())
                     `;
+
+                    // Refetch rankings after DB update to ensure real-time reflection
+                    await fetchRankings();
                 } catch (err) {
                     console.error('DB Sync failed:', err);
+                    alert('서버 저장에 실패했습니다. 하지만 로컬에는 저장되었습니다.');
+                } finally {
+                    setLoadingRankings(false);
                 }
             };
             syncPost();

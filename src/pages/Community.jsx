@@ -35,11 +35,18 @@ const Community = () => {
                 // For now, let's just get the posts and simplified comments.
                 // In a real app, you'd join comments too.
 
-                setPosts(results.map(p => ({
-                    ...p,
-                    time: new Date(p.time).toLocaleString(),
-                    comments: [] // To be implemented or fetched separately
-                })));
+                setPosts(results.map(p => {
+                    const dateObj = new Date(p.time);
+                    const formattedDate = `${dateObj.getFullYear()}.${String(dateObj.getMonth() + 1).padStart(2, '0')}.${String(dateObj.getDate()).padStart(2, '0')}`;
+                    const formattedTime = `${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}`;
+
+                    return {
+                        ...p,
+                        date: formattedDate,
+                        time: formattedTime,
+                        comments: []
+                    };
+                }));
             } catch (err) {
                 console.error('Failed to fetch posts:', err);
             } finally {
@@ -137,8 +144,10 @@ const Community = () => {
                                             <UserIcon size={20} color="var(--text-muted)" />
                                         </div>
                                         <div style={{ flex: 1 }}>
-                                            <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>{post.user}</div>
-                                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{post.time} · {post.type === 'diet' ? '식단 인증' : '운동 인증'}</div>
+                                            <div style={{ fontWeight: 800, fontSize: '1rem', color: '#fff' }}>{post.user}</div>
+                                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                                                {post.date} {post.time} · <span style={{ color: 'var(--primary)', fontWeight: 600 }}>{post.type === 'diet' ? '식단 인증' : '운동 인증'}</span>
+                                            </div>
                                         </div>
                                     </div>
 

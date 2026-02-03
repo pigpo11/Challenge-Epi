@@ -29,7 +29,6 @@ const Ranking = () => {
                     isMe: user.id === profile.dbId
                 }));
 
-                // If my profile isn't in top 20, we could theoretically find it but for simplicity:
                 setRankings(formatted);
             } catch (err) {
                 console.error('Failed to fetch rankings:', err);
@@ -39,7 +38,7 @@ const Ranking = () => {
         };
 
         fetchRankings();
-    }, [profile.dbId]);
+    }, [profile.dbId, profile.points]);
 
     return (
         <div style={{ paddingBottom: '4rem' }}>
