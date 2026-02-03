@@ -60,13 +60,15 @@ const Community = () => {
                     const formattedDate = dateObj.toLocaleDateString('ko-KR', {
                         year: 'numeric',
                         month: '2-digit',
-                        day: '2-digit'
+                        day: '2-digit',
+                        timeZone: 'Asia/Seoul'
                     }).replace(/\. /g, '.').replace(/\.$/, '');
 
                     const formattedTime = dateObj.toLocaleTimeString('ko-KR', {
                         hour: '2-digit',
                         minute: '2-digit',
-                        hour12: false
+                        hour12: false,
+                        timeZone: 'Asia/Seoul'
                     });
 
                     return {
