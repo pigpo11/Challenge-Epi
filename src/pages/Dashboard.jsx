@@ -106,10 +106,14 @@ const Dashboard = () => {
 
                 if (!newProfile.certs) newProfile.certs = { diet: [], workout: null };
 
+                // Generate ID early to keep local and DB in sync
+                const postId = crypto.randomUUID();
+                const certData = { id: postId, image: base64String };
+
                 if (type === 'diet') {
-                    newProfile.certs.diet = [...(newProfile.certs.diet || []), base64String];
+                    newProfile.certs.diet = [...(newProfile.certs.diet || []), certData];
                 } else {
-                    newProfile.certs.workout = base64String;
+                    newProfile.certs.workout = certData;
                 }
 
                 newProfile.points = (profile.points || 0) + 10;
@@ -130,8 +134,7 @@ const Dashboard = () => {
                     // 1. Update points
                     await sql`UPDATE "Profile" SET points = ${newProfile.points} WHERE id = ${targetDbId}`;
 
-                    // 2. Create Community Post
-                    const postId = crypto.randomUUID();
+                    // 2. Create Community Post - Use the ID we already generated
                     await sql`
                         INSERT INTO "Post" (id, "profileId", type, image, likes, "createdAt")
                         VALUES (${postId}, ${targetDbId}, ${type}, ${base64String}, 0, NOW())
@@ -176,8 +179,13 @@ const Dashboard = () => {
                 // 1. Update points
                 await sql`UPDATE "Profile" SET points = ${newProfile.points} WHERE id = ${profile.dbId}`;
 
-                // 2. Delete the post from Community (based on image match)
-                await sql`DELETE FROM "Post" WHERE "profileId" = ${profile.dbId} AND image = ${imageToDelete}`;
+                // 2. Delete the post from Community
+                // If we have an ID (new format), use it for precise deletion. Otherwise fallback to image match.
+                if (imageToDelete && typeof imageToDelete === 'object' && imageToDelete.id) {
+                    await sql`DELETE FROM "Post" WHERE id = ${imageToDelete.id}`;
+                } else {
+                    await sql`DELETE FROM "Post" WHERE "profileId" = ${profile.dbId} AND image = ${typeof imageToDelete === 'string' ? imageToDelete : imageToDelete?.image}`;
+                }
 
                 await fetchRankings();
             } catch (err) {
@@ -324,7 +332,7 @@ const Dashboard = () => {
                                         {(profile.certs?.diet || []).map((img, idx) => (
                                             <div key={idx} style={{ position: 'relative', width: '80px', height: '80px' }}>
                                                 <div style={{ width: '100%', height: '100%', borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--border)' }}>
-                                                    <img src={img} alt="인증" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                    <img src={typeof img === 'string' ? img : img.image} alt="인증" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                 </div>
                                                 <button
                                                     onClick={() => handleDeleteCert('diet', idx)}
@@ -358,7 +366,7 @@ const Dashboard = () => {
                                         {profile.certs?.workout ? (
                                             <div style={{ position: 'relative', width: '80px', height: '80px' }}>
                                                 <div style={{ width: '100%', height: '100%', borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--border)' }}>
-                                                    <img src={profile.certs.workout} alt="인증" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                    <img src={typeof profile.certs.workout === 'string' ? profile.certs.workout : profile.certs.workout.image} alt="인증" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                 </div>
                                                 <button
                                                     onClick={() => handleDeleteCert('workout')}
