@@ -28,6 +28,7 @@ model Profile {
   comments       Comment[]
   inbodyRecords  InBodyRecord[]
   posts          Post[]
+  likes          Like[]
 }
 
 model InBodyRecord {
@@ -60,6 +61,7 @@ model Post {
   likes     Int       @default(0)
   createdAt DateTime  @default(now())
   comments  Comment[]
+  likedBy   Like[]
   profile   Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
 }
 
@@ -71,4 +73,15 @@ model Comment {
   createdAt DateTime @default(now())
   post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
   profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+}
+
+model Like {
+  id        String   @id @default(uuid())
+  postId    String
+  profileId String
+  createdAt DateTime @default(now())
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, profileId])
 }

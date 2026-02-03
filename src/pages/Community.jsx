@@ -47,9 +47,13 @@ const Community = () => {
                     ORDER BY c."createdAt" ASC
                 `;
 
-                // Fetch current user's likes if you had a Like table, 
-                // but since 'likes' is just a count in 'Post', we'll use localStorage for "isLiked" state per session/device for now 
-                // or just keep it in state. 
+                // Fetch current user's likes from Like table
+                if (profile.dbId) {
+                    const userLikes = await sql`
+                        SELECT "postId" FROM "Like" WHERE "profileId" = ${profile.dbId}
+                    `;
+                    setLikedPosts(userLikes.map(like => like.postId));
+                }
 
                 const formattedPosts = postResults.map(p => {
                     const dateObj = new Date(p.time);
@@ -82,7 +86,7 @@ const Community = () => {
         };
 
         fetchPosts();
-    }, []);
+    }, [profile.dbId]);
 
     const [commentText, setCommentText] = useState({});
 
@@ -126,24 +130,57 @@ const Community = () => {
     };
 
     const toggleLike = async (postId) => {
-        const isLiked = likedPosts.includes(postId);
-
-        // 1. UI Update
-        if (isLiked) {
-            setLikedPosts(prev => prev.filter(id => id !== postId));
-        } else {
-            setLikedPosts(prev => [...prev, postId]);
+        if (!profile.dbId) {
+            alert('좋아요를 누르려면 로그인이 필요합니다.');
+            return;
         }
 
-        // 2. DB Sync (Increment/Decrement 'likes' column in 'Post' table)
+        const isLiked = likedPosts.includes(postId);
+
+        // 1. UI Update (Optimistic)
+        if (isLiked) {
+            setLikedPosts(prev => prev.filter(id => id !== postId));
+            // Update post likes count in UI
+            setPosts(prev => prev.map(post =>
+                post.id === postId ? { ...post, likes: Math.max(0, (post.likes || 0) - 1) } : post
+            ));
+        } else {
+            setLikedPosts(prev => [...prev, postId]);
+            // Update post likes count in UI
+            setPosts(prev => prev.map(post =>
+                post.id === postId ? { ...post, likes: (post.likes || 0) + 1 } : post
+            ));
+        }
+
+        // 2. DB Sync - Insert/Delete Like record and update Post likes count
         try {
             if (isLiked) {
+                // Remove like
+                await sql`DELETE FROM "Like" WHERE "postId" = ${postId} AND "profileId" = ${profile.dbId}`;
                 await sql`UPDATE "Post" SET likes = GREATEST(0, likes - 1) WHERE id = ${postId}`;
             } else {
+                // Add like
+                await sql`
+                    INSERT INTO "Like" (id, "postId", "profileId", "createdAt")
+                    VALUES (gen_random_uuid(), ${postId}, ${profile.dbId}, NOW())
+                    ON CONFLICT ("postId", "profileId") DO NOTHING
+                `;
                 await sql`UPDATE "Post" SET likes = likes + 1 WHERE id = ${postId}`;
             }
         } catch (err) {
             console.error('Like sync failed:', err);
+            // Rollback UI on error
+            if (isLiked) {
+                setLikedPosts(prev => [...prev, postId]);
+                setPosts(prev => prev.map(post =>
+                    post.id === postId ? { ...post, likes: (post.likes || 0) + 1 } : post
+                ));
+            } else {
+                setLikedPosts(prev => prev.filter(id => id !== postId));
+                setPosts(prev => prev.map(post =>
+                    post.id === postId ? { ...post, likes: Math.max(0, (post.likes || 0) - 1) } : post
+                ));
+            }
         }
     };
 
@@ -264,7 +301,7 @@ const Community = () => {
                                                 style={{ background: 'none', color: isLiked ? '#ff4d4d' : '#fff', display: 'flex', alignItems: 'center', gap: '8px', transition: 'color 0.2s' }}
                                             >
                                                 <Heart size={24} fill={isLiked ? '#ff4d4d' : 'none'} />
-                                                <span style={{ fontSize: '1rem', fontWeight: 600 }}>{(post.likes || 0) + (isLiked ? 1 : 0)}</span>
+                                                <span style={{ fontSize: '1rem', fontWeight: 600 }}>{post.likes || 0}</span>
                                             </motion.button>
                                             <div style={{ display: 'flex', alignItems: 'center', color: '#fff' }}>
                                                 <MessageCircle size={24} />

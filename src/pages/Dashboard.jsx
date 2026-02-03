@@ -63,36 +63,71 @@ const Dashboard = () => {
         const file = e.target.files[0];
         if (!file) return;
 
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            const base64String = reader.result;
-            const newProfile = { ...profile };
+        // Image compression function using Canvas
+        const compressImage = (file, maxWidth = 1200, quality = 0.7) => {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
 
-            if (!newProfile.certs) newProfile.certs = { diet: [], workout: null };
+                        // Calculate new dimensions while maintaining aspect ratio
+                        if (width > maxWidth) {
+                            height = Math.round((height * maxWidth) / width);
+                            width = maxWidth;
+                        }
 
-            if (type === 'diet') {
-                newProfile.certs.diet = [...(newProfile.certs.diet || []), base64String];
-            } else {
-                newProfile.certs.workout = base64String;
-            }
+                        canvas.width = width;
+                        canvas.height = height;
 
-            newProfile.points = (profile.points || 0) + 10;
-            setProfile(newProfile);
-            localStorage.setItem('fitness-profile', JSON.stringify(newProfile));
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
 
-            // Sync to DB
-            const syncPost = async () => {
+                        // Convert to compressed JPEG
+                        const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
+                        resolve(compressedBase64);
+                    };
+                    img.onerror = () => reject(new Error('Failed to load image'));
+                    img.src = event.target.result;
+                };
+                reader.onerror = () => reject(new Error('Failed to read file'));
+                reader.readAsDataURL(file);
+            });
+        };
+
+        // Process and compress image
+        const processImage = async () => {
+            try {
+                const base64String = await compressImage(file);
+                const newProfile = { ...profile };
+
+                if (!newProfile.certs) newProfile.certs = { diet: [], workout: null };
+
+                if (type === 'diet') {
+                    newProfile.certs.diet = [...(newProfile.certs.diet || []), base64String];
+                } else {
+                    newProfile.certs.workout = base64String;
+                }
+
+                newProfile.points = (profile.points || 0) + 10;
+                setProfile(newProfile);
+                localStorage.setItem('fitness-profile', JSON.stringify(newProfile));
+
+                // Sync to DB
                 const targetDbId = newProfile.dbId || profile.dbId;
                 if (!targetDbId) {
                     console.error('No DB ID found for sync');
+                    alert(`${type === 'diet' ? '식단' : '운동'} 인증이 로컬에 저장되었습니다. (서버 동기화 실패)`);
                     return;
                 }
 
                 try {
                     setLoadingRankings(true);
 
-                    // 1. Ensure Profile exists/up-to-date in DB
-                    // We update points first
+                    // 1. Update points
                     await sql`UPDATE "Profile" SET points = ${newProfile.points} WHERE id = ${targetDbId}`;
 
                     // 2. Create Community Post
@@ -101,20 +136,22 @@ const Dashboard = () => {
                         VALUES (gen_random_uuid(), ${targetDbId}, ${type}, ${base64String}, 0, NOW())
                     `;
 
-                    // Refetch rankings after DB update to ensure real-time reflection
+                    // Refetch rankings after DB update
                     await fetchRankings();
+                    alert(`${type === 'diet' ? '식단' : '운동'} 인증 완료! 10pts가 적립되었고 커뮤니티에 공유되었습니다.`);
                 } catch (err) {
                     console.error('DB Sync failed:', err);
                     alert('서버 저장에 실패했습니다. 하지만 로컬에는 저장되었습니다.');
                 } finally {
                     setLoadingRankings(false);
                 }
-            };
-            syncPost();
-
-            alert(`${type === 'diet' ? '식단' : '운동'} 인증 완료! 10pts가 적립되었고 커뮤니티에 공유되었습니다.`);
+            } catch (err) {
+                console.error('Image processing failed:', err);
+                alert('이미지 처리에 실패했습니다. 다시 시도해주세요.');
+            }
         };
-        reader.readAsDataURL(file);
+
+        processImage();
     };
 
     const handleDeleteCert = async (type, index) => {

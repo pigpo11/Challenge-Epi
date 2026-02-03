@@ -61,23 +61,64 @@ const Settings = () => {
         const file = e.target.files[0];
         if (!file) return;
 
-        const reader = new FileReader();
-        reader.onloadend = async () => {
-            const base64String = reader.result;
-            const newProfile = { ...profile, profileImage: base64String };
-            saveProfile(newProfile);
-            setUserInfo(prev => ({ ...prev, profileImage: base64String }));
+        // Image compression function using Canvas
+        const compressImage = (file, maxWidth = 400, quality = 0.8) => {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
 
-            // DB Sync
-            if (profile.dbId) {
-                try {
-                    await sql`UPDATE "Profile" SET "profileImage" = ${base64String}, "updatedAt" = NOW() WHERE id = ${profile.dbId}`;
-                } catch (err) {
-                    console.error('Failed to sync profile image to DB:', err);
+                        // Calculate new dimensions while maintaining aspect ratio
+                        if (width > maxWidth) {
+                            height = Math.round((height * maxWidth) / width);
+                            width = maxWidth;
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        // Convert to compressed JPEG
+                        const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
+                        resolve(compressedBase64);
+                    };
+                    img.onerror = () => reject(new Error('Failed to load image'));
+                    img.src = event.target.result;
+                };
+                reader.onerror = () => reject(new Error('Failed to read file'));
+                reader.readAsDataURL(file);
+            });
+        };
+
+        const processImage = async () => {
+            try {
+                const base64String = await compressImage(file);
+                const newProfile = { ...profile, profileImage: base64String };
+                saveProfile(newProfile);
+                setUserInfo(prev => ({ ...prev, profileImage: base64String }));
+
+                // DB Sync
+                if (profile.dbId) {
+                    try {
+                        await sql`UPDATE "Profile" SET "profileImage" = ${base64String}, "updatedAt" = NOW() WHERE id = ${profile.dbId}`;
+                    } catch (err) {
+                        console.error('Failed to sync profile image to DB:', err);
+                        alert('프로필 이미지 저장에 실패했습니다.');
+                    }
                 }
+            } catch (err) {
+                console.error('Image processing failed:', err);
+                alert('이미지 처리에 실패했습니다. 다시 시도해주세요.');
             }
         };
-        reader.readAsDataURL(file);
+
+        processImage();
     };
 
     const handleDeleteProfileImage = async (e) => {
