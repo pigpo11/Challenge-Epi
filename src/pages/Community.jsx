@@ -221,16 +221,17 @@ const Community = () => {
 
         // 2. DB Sync
         try {
-            // Deduct points
-            const newPoints = Math.max(0, (profile.points || 0) - 10);
-            await sql`UPDATE "Profile" SET points = ${newPoints} WHERE id = ${profile.dbId}`;
+            // Deduct points atomically in DB
+            await sql`UPDATE "Profile" SET points = GREATEST(0, points - 10), "updatedAt" = NOW() WHERE id = ${profile.dbId}`;
 
-            // Delete post
+            // Delete post record
             await sql`DELETE FROM "Post" WHERE id = ${post.id}`;
 
             // Sync local profile state: remove from certs and update points
             setProfile(prev => {
+                const newPoints = Math.max(0, (prev.points || 0) - 10);
                 const newCerts = { ...prev.certs };
+
                 if (post.type === 'diet') {
                     newCerts.diet = (newCerts.diet || []).filter(c =>
                         typeof c === 'string' ? c !== post.image : c.id !== post.id

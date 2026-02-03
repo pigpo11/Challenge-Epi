@@ -157,27 +157,30 @@ const Dashboard = () => {
     };
 
     const handleDeleteCert = async (type, index) => {
-        if (!window.confirm('기록을 삭제하시겠습니까?')) return;
+        if (!window.confirm('기록을 삭제하시겠습니까? 적립된 포인트(10pts)도 회수됩니다.')) return;
 
-        const newProfile = { ...profile };
         const imageToDelete = type === 'diet' ? profile.certs.diet[index] : profile.certs.workout;
+        if (!imageToDelete) return;
 
-        if (!imageToDelete) return; // Guard clause
-
-        if (type === 'diet') {
-            newProfile.certs.diet = profile.certs.diet.filter((_, i) => i !== index);
-        } else {
-            newProfile.certs.workout = null;
-        }
-
-        // Local State Update (Note: Point deduction is handled via the separate Community Post deletion if needed, 
-        // but here we follow request to not deduct again/avoid double deduction)
-        setProfile(newProfile);
+        // Local state updates: remove cert and decrement points
+        const newPoints = Math.max(0, (profile.points || 0) - 10);
+        setProfile(prev => {
+            const updated = { ...prev, points: newPoints };
+            if (type === 'diet') {
+                updated.certs.diet = prev.certs.diet.filter((_, i) => i !== index);
+            } else {
+                updated.certs.workout = null;
+            }
+            return updated;
+        });
 
         // Sync to DB
         if (profile.dbId) {
             try {
-                // Delete the post from Community (This will effectively remove the certification record)
+                // 1. Recover points in DB
+                await sql`UPDATE "Profile" SET points = GREATEST(0, points - 10), "updatedAt" = NOW() WHERE id = ${profile.dbId}`;
+
+                // 2. Delete the corresponding post from Community
                 if (typeof imageToDelete === 'object' && imageToDelete.id) {
                     await sql`DELETE FROM "Post" WHERE id = ${imageToDelete.id}`;
                 } else {
@@ -190,11 +193,11 @@ const Dashboard = () => {
                 await fetchRankings();
             } catch (err) {
                 console.error('Delete sync failed:', err);
-                // Silence the error if the record was already deleted by Community view
+                // Silence if already deleted
             }
         }
 
-        alert('기록이 삭제되었습니다.');
+        alert('기록이 삭제되고 포인트가 회수되었습니다.');
     };
 
     return (
