@@ -203,7 +203,7 @@ const Settings = () => {
 
                         <div style={{ flex: 1 }}>
                             <div style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '2px' }}>{profile.nickname}</div>
-                            <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>{profile.gender === 'male' ? '남성' : '여성'} · {profile.age}세</div>
+                            <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>{profile.gender === 'male' ? '남성' : '여성'} · {profile.age}세(만)</div>
                         </div>
                         <button
                             onClick={() => {
@@ -243,8 +243,16 @@ const Settings = () => {
                                         <input type="number" value={userInfo.weight} onChange={(e) => setUserInfo({ ...userInfo, weight: e.target.value })} style={{ padding: '0.75rem 0.5rem', fontSize: '0.9rem' }} />
                                     </div>
                                     <div className="input-group" style={{ marginBottom: 0, minWidth: 0 }}>
-                                        <label style={{ fontSize: '0.75rem' }}>나이 (세)</label>
-                                        <input type="number" value={userInfo.age} onChange={(e) => setUserInfo({ ...userInfo, age: e.target.value })} style={{ padding: '0.75rem 0.5rem', fontSize: '0.9rem' }} />
+                                        <label style={{ fontSize: '0.75rem' }}>나이 (만)</label>
+                                        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                                            <input
+                                                type="number"
+                                                value={userInfo.age}
+                                                onChange={(e) => setUserInfo({ ...userInfo, age: e.target.value })}
+                                                style={{ padding: '0.75rem 0.5rem', fontSize: '0.9rem', paddingRight: '1.5rem' }}
+                                            />
+                                            <span style={{ position: 'absolute', right: '0.5rem', color: 'var(--text-muted)', fontSize: '0.8rem' }}>세</span>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -303,7 +311,7 @@ const Settings = () => {
                                 </div>
                                 <div className="glass-card" style={{ padding: '1rem', textAlign: 'center' }}>
                                     <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '4px' }}>나이</div>
-                                    <div style={{ fontWeight: 700 }}>{profile.age}세</div>
+                                    <div style={{ fontWeight: 700 }}>{profile.age}세(만)</div>
                                 </div>
                             </div>
                         )}
@@ -342,13 +350,13 @@ const Settings = () => {
                             <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                 <Target size={14} /> 목표 칼로리
                             </div>
-                            <div style={{ fontSize: '1.2rem', fontWeight: 800 }}>{profile.targetCalories.toLocaleString()}<span style={{ fontSize: '0.8rem', fontWeight: 500, marginLeft: '2px' }}>kcal</span></div>
+                            <div style={{ fontSize: '1.2rem', fontWeight: 800 }}>{(Number(profile.targetCalories) || 0).toLocaleString()}<span style={{ fontSize: '0.8rem', fontWeight: 500, marginLeft: '2px' }}>kcal</span></div>
                         </div>
                         <div className="glass-card" style={{ padding: '1.25rem', background: 'var(--bg-surface)' }}>
                             <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                 <Zap size={14} /> 기초 대사량 (BMR)
                             </div>
-                            <div style={{ fontSize: '1.2rem', fontWeight: 800 }}>{profile.bmr.toLocaleString()}<span style={{ fontSize: '0.8rem', fontWeight: 500, marginLeft: '2px' }}>kcal</span></div>
+                            <div style={{ fontSize: '1.2rem', fontWeight: 800 }}>{(Number(profile.bmr) || 0).toLocaleString()}<span style={{ fontSize: '0.8rem', fontWeight: 500, marginLeft: '2px' }}>kcal</span></div>
                         </div>
                     </div>
 
@@ -357,15 +365,15 @@ const Settings = () => {
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', textAlign: 'center' }}>
                             <div>
                                 <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '4px' }}>탄수화물</div>
-                                <div style={{ fontWeight: 700, fontSize: '1.15rem' }}>{profile.macros.carb}g</div>
+                                <div style={{ fontWeight: 700, fontSize: '1.15rem' }}>{profile.macros?.carb || 0}g</div>
                             </div>
                             <div style={{ borderLeft: '1px solid var(--border)', borderRight: '1px solid var(--border)' }}>
                                 <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '4px' }}>단백질</div>
-                                <div style={{ fontWeight: 700, fontSize: '1.15rem', color: 'var(--primary)' }}>{profile.macros.protein}g</div>
+                                <div style={{ fontWeight: 700, fontSize: '1.15rem', color: 'var(--primary)' }}>{profile.macros?.protein || 0}g</div>
                             </div>
                             <div>
                                 <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '4px' }}>지방</div>
-                                <div style={{ fontWeight: 700, fontSize: '1.15rem', color: '#ff4d4d' }}>{profile.macros.fat}g</div>
+                                <div style={{ fontWeight: 700, fontSize: '1.15rem', color: '#ff4d4d' }}>{profile.macros?.fat || 0}g</div>
                             </div>
                         </div>
                     </div>
