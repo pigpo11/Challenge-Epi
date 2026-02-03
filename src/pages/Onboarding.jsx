@@ -92,7 +92,7 @@ const Onboarding = () => {
         { title: '로그인 시 사용할\n숫자 6자리를 입력해주세요', desc: '' },
         { title: '신체 정보를\n입력해 주세요', desc: '정확한 칼로리 계산을 위해 필요해요' },
         { title: '평소 활동량은\n어느 정도인가요?', desc: '보통의 하루를 기준으로 선택해 주세요' },
-        { title: '하루에 얼마나\n감량하고 싶으세요?', desc: '건강한 감량을 위해 20% 이내를 권장해요' },
+        { title: '얼마나\n감량하고 싶으세요?', desc: '건강한 감량을 위해 20% 이내를 권장해요' },
         { title: '어떤 관리에\n집중하고 싶으세요?', desc: '딱 맞는 트랙을 설정해 드릴게요' }
     ];
 
@@ -248,8 +248,26 @@ const Onboarding = () => {
                                 </div>
                             </div>
                             <div className="input-group">
-                                <label>나이 (세)</label>
-                                <input type="number" name="age" value={formData.age} onChange={handleChange} placeholder="25" />
+                                <label>나이 (만)</label>
+                                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                                    <input
+                                        type="number"
+                                        name="age"
+                                        value={formData.age}
+                                        onChange={handleChange}
+                                        placeholder="25"
+                                        style={{ paddingRight: '3rem' }}
+                                    />
+                                    <span style={{
+                                        position: 'absolute',
+                                        right: '1.25rem',
+                                        color: 'var(--text-muted)',
+                                        fontSize: '1rem',
+                                        pointerEvents: 'none'
+                                    }}>
+                                        세
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     )}
