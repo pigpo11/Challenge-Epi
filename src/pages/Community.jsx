@@ -243,7 +243,7 @@ const Community = () => {
 
                                     {/* Image */}
                                     <div style={{ width: '100%', aspectRatio: '1/1', background: '#000' }}>
-                                        <img src={post.image} alt="인증샷" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        <img src={post.image} alt="인증샷" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                                     </div>
 
                                     {/* Actions & Content */}
