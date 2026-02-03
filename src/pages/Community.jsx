@@ -68,17 +68,9 @@ const Community = () => {
                         timeZone: 'Asia/Seoul'
                     }).replace(/\. /g, '.').replace(/\.$/, '');
 
-                    const formattedTime = dateObj.toLocaleTimeString('ko-KR', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        hour12: false,
-                        timeZone: 'Asia/Seoul'
-                    });
-
                     return {
                         ...p,
                         date: formattedDate,
-                        time: formattedTime,
                         comments: commentResults.filter(c => c.postId === p.id)
                     };
                 });
@@ -297,7 +289,7 @@ const Community = () => {
                                         <div style={{ flex: 1 }}>
                                             <div style={{ fontWeight: 800, fontSize: '1rem', color: '#fff' }}>{post.user}</div>
                                             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                                                {post.date} {post.time} · <span style={{ color: 'var(--primary)', fontWeight: 600 }}>{post.type === 'diet' ? '식단 인증' : '운동 인증'}</span>
+                                                {post.date} · <span style={{ color: 'var(--primary)', fontWeight: 600 }}>{post.type === 'diet' ? '식단 인증' : '운동 인증'}</span>
                                             </div>
                                         </div>
                                         {post.profileId === profile.dbId && (
