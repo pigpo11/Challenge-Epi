@@ -17,7 +17,8 @@ const Community = () => {
     useEffect(() => {
         const fetchPosts = async () => {
             try {
-                const results = await sql`
+                // Fetch posts first
+                const postResults = await sql`
                     SELECT 
                         p.id, 
                         p.type, 
@@ -31,11 +32,24 @@ const Community = () => {
                     ORDER BY p."createdAt" DESC
                 `;
 
-                // For each post, fetch comments potentially. 
-                // For now, let's just get the posts and simplified comments.
-                // In a real app, you'd join comments too.
+                // Fetch ALL comments and group them (or fetch per post, but one big query is often better for lists)
+                const commentResults = await sql`
+                    SELECT 
+                        c.id, 
+                        c."postId", 
+                        c.text, 
+                        c."createdAt", 
+                        pr.nickname as user
+                    FROM "Comment" c
+                    JOIN "Profile" pr ON c."profileId" = pr.id
+                    ORDER BY c."createdAt" ASC
+                `;
 
-                setPosts(results.map(p => {
+                // Fetch current user's likes if you had a Like table, 
+                // but since 'likes' is just a count in 'Post', we'll use localStorage for "isLiked" state per session/device for now 
+                // or just keep it in state. 
+
+                const formattedPosts = postResults.map(p => {
                     const dateObj = new Date(p.time);
                     const formattedDate = `${dateObj.getFullYear()}.${String(dateObj.getMonth() + 1).padStart(2, '0')}.${String(dateObj.getDate()).padStart(2, '0')}`;
                     const formattedTime = `${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}`;
@@ -44,9 +58,11 @@ const Community = () => {
                         ...p,
                         date: formattedDate,
                         time: formattedTime,
-                        comments: []
+                        comments: commentResults.filter(c => c.postId === p.id)
                     };
-                }));
+                });
+
+                setPosts(formattedPosts);
             } catch (err) {
                 console.error('Failed to fetch posts:', err);
             } finally {
@@ -63,37 +79,67 @@ const Community = () => {
         setCommentText(prev => ({ ...prev, [postId]: text }));
     };
 
-    const handleAddComment = (postId) => {
-        if (!commentText[postId]) return;
+    const handleAddComment = async (postId) => {
+        if (!commentText[postId] || !profile.dbId) return;
 
+        const text = commentText[postId];
+        const tempId = Date.now().toString();
+
+        // 1. Optimistic Update
         const newPosts = posts.map(post => {
             if (post.id === postId) {
                 return {
                     ...post,
                     comments: [
                         ...post.comments,
-                        { id: Date.now(), user: profile.nickname || '나', text: commentText[postId] }
+                        { id: tempId, user: profile.nickname || '나', text: text }
                     ]
                 };
             }
             return post;
         });
-
         setPosts(newPosts);
         setCommentText(prev => ({ ...prev, [postId]: '' }));
+
+        // 2. DB Sync
+        try {
+            await sql`
+                INSERT INTO "Comment" (id, "postId", "profileId", text, "createdAt")
+                VALUES (gen_random_uuid(), ${postId}, ${profile.dbId}, ${text}, NOW())
+            `;
+        } catch (err) {
+            console.error('Failed to save comment:', err);
+            alert('댓글 저장에 실패했습니다.');
+            // Rollback if necessary
+        }
     };
 
-    const toggleLike = (postId) => {
-        if (likedPosts.includes(postId)) {
+    const toggleLike = async (postId) => {
+        const isLiked = likedPosts.includes(postId);
+
+        // 1. UI Update
+        if (isLiked) {
             setLikedPosts(prev => prev.filter(id => id !== postId));
         } else {
             setLikedPosts(prev => [...prev, postId]);
         }
+
+        // 2. DB Sync (Increment/Decrement 'likes' column in 'Post' table)
+        try {
+            if (isLiked) {
+                await sql`UPDATE "Post" SET likes = GREATEST(0, likes - 1) WHERE id = ${postId}`;
+            } else {
+                await sql`UPDATE "Post" SET likes = likes + 1 WHERE id = ${postId}`;
+            }
+        } catch (err) {
+            console.error('Like sync failed:', err);
+        }
     };
 
-    const handleDeleteComment = (postId, commentId) => {
+    const handleDeleteComment = async (postId, commentId) => {
         if (!window.confirm('댓글을 삭제하시겠습니까?')) return;
 
+        // 1. UI Update
         const newPosts = posts.map(post => {
             if (post.id === postId) {
                 return {
@@ -104,6 +150,13 @@ const Community = () => {
             return post;
         });
         setPosts(newPosts);
+
+        // 2. DB Sync
+        try {
+            await sql`DELETE FROM "Comment" WHERE id = ${commentId}`;
+        } catch (err) {
+            console.error('Failed to delete comment:', err);
+        }
     };
 
     return (

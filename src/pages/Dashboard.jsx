@@ -114,7 +114,7 @@ const Dashboard = () => {
         reader.readAsDataURL(file);
     };
 
-    const handleDeleteCert = (type, index) => {
+    const handleDeleteCert = async (type, index) => {
         if (!window.confirm('기록을 삭제하시겠습니까? 적립된 포인트(10pts)도 회수됩니다.')) return;
 
         const newProfile = { ...profile };
@@ -128,11 +128,22 @@ const Dashboard = () => {
 
         newProfile.points = Math.max(0, (profile.points || 0) - 10);
         setProfile(newProfile);
-        localStorage.setItem('fitness-profile', JSON.stringify(newProfile));
 
-        const savedPosts = JSON.parse(localStorage.getItem('community-posts') || '[]');
-        const updatedPosts = savedPosts.filter(post => post.image !== imageToDelete);
-        localStorage.setItem('community-posts', JSON.stringify(updatedPosts));
+        // Sync to DB
+        if (profile.dbId) {
+            try {
+                // 1. Update points
+                await sql`UPDATE "Profile" SET points = ${newProfile.points} WHERE id = ${profile.dbId}`;
+
+                // 2. Delete the post from Community (based on image match)
+                await sql`DELETE FROM "Post" WHERE "profileId" = ${profile.dbId} AND image = ${imageToDelete}`;
+
+                await fetchRankings();
+            } catch (err) {
+                console.error('Delete sync failed:', err);
+                alert('서버 저장소 데이터 삭제에 실패했습니다.');
+            }
+        }
 
         alert('기록이 삭제되었습니다.');
     };

@@ -27,18 +27,27 @@ const Settings = () => {
         }
     };
 
-    const handleSaveStatus = () => {
+    const handleSaveStatus = async () => {
         const newProfile = { ...profile, status: statusText };
-        saveProfile(newProfile);
-        alert('상태 메시지가 변경되었습니다.');
+        setProfile(newProfile);
+
+        if (profile.dbId) {
+            try {
+                await sql`UPDATE "Profile" SET status = ${statusText}, "updatedAt" = NOW() WHERE id = ${profile.dbId}`;
+                alert('상태 메시지가 변경되었습니다.');
+            } catch (err) {
+                console.error('Failed to update status in DB:', err);
+                alert('상태 메시지 저장에 실패했습니다.');
+            }
+        }
     };
 
-    const handleSaveUserInfo = () => {
+    const handleSaveUserInfo = async () => {
         if (!userInfo.nickname) {
             alert('닉네임을 입력해주세요.');
             return;
         }
-        calculateFitness(userInfo);
+        await calculateFitness(userInfo);
         setIsEditingInfo(false);
         alert('설정 정보가 수정되었습니다.');
     };

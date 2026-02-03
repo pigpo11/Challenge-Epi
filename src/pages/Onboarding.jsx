@@ -70,7 +70,9 @@ const Onboarding = () => {
                 alert('필수 정보를 모두 입력해주세요.');
                 return;
             }
-            calculateFitness(formData);
+            setLoading(true);
+            await calculateFitness(formData);
+            setLoading(false);
             navigate('/dashboard');
         }
     };

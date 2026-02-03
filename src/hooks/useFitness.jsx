@@ -74,6 +74,39 @@ export const FitnessProvider = ({ children }) => {
     return data;
   });
 
+  // 1. Initial Load Effect: Sync from DB if dbId exists
+  useEffect(() => {
+    const syncFromDb = async () => {
+      if (profile.dbId) {
+        try {
+          const results = await sql`SELECT * FROM "Profile" WHERE id = ${profile.dbId}`;
+          if (results && results[0]) {
+            const dbProfile = results[0];
+            setProfile(prev => ({
+              ...prev,
+              ...dbProfile,
+              dbId: dbProfile.id,
+              isSetup: true
+            }));
+          }
+        } catch (err) {
+          console.error('Initial sync from DB failed:', err);
+        }
+      }
+    };
+    syncFromDb();
+  }, []); // Only once on mount
+
+  // 2. Persistence Effect: Keep localStorage in sync with profile state
+  useEffect(() => {
+    if (profile.isSetup) {
+      localStorage.setItem('fitness-profile', JSON.stringify(profile));
+      if (profile.dbId) {
+        localStorage.setItem('fitness-db-id', profile.dbId);
+      }
+    }
+  }, [profile]);
+
   // Monthly Reset Effect
   useEffect(() => {
     const handleMonthlyReset = async () => {
@@ -83,21 +116,12 @@ export const FitnessProvider = ({ children }) => {
 
       if (lastReset && lastReset !== currentMonth && profile.dbId) {
         try {
-          // 1. Reset my points in DB
-          await sql`UPDATE "Profile" SET points = 0 WHERE id = ${profile.dbId}`;
-
-          // 2. (Optional but recommended) Reset ALL users if not already done this month
-          // We can use a simple check to see if anyone else has a high score or use a dedicated settings table
-          // Since we want the "Ranking" to be 0 for everyone, a global reset is cleanest if the user is the first to log in.
-          // To prevent multiple global resets, we can check if a "global-reset-done" flag exists for this month in DB.
-          // For simplicity and to ensure the user's requirement:
-          // "나의 포인트랑 랭킹 둘 다 0pts가 되게" -> Reset my points. 
-          // If everyone does this, the ranking naturally resets. 
-          // But to make it feel instant for the ranking:
+          // Reset ALL users for the new month challenge
           await sql`UPDATE "Profile" SET points = 0`;
 
           console.log('Monthly Reset Completed');
           localStorage.setItem('last-reset-month', currentMonth);
+          setProfile(prev => ({ ...prev, points: 0 }));
         } catch (err) {
           console.error('Monthly reset sync failed:', err);
         }
@@ -132,6 +156,8 @@ export const FitnessProvider = ({ children }) => {
     });
     localStorage.removeItem('fitness-profile');
     localStorage.removeItem('fitness-db-id');
+    localStorage.removeItem('last-reset-month');
+    localStorage.removeItem('last-reset-date');
   }, []);
 
   const login = useCallback(async (nickname, password) => {
@@ -143,12 +169,10 @@ export const FitnessProvider = ({ children }) => {
           ...dbProfile,
           dbId: dbProfile.id,
           isSetup: true,
-          certs: { diet: [], workout: null }, // Daily certs are local usually
-          inbodyRecords: [] // Fetched separately if needed
+          certs: { diet: [], workout: null }, // Daily certs remain local or fetched
+          inbodyRecords: []
         };
         setProfile(newProfile);
-        localStorage.setItem('fitness-profile', JSON.stringify(newProfile));
-        localStorage.setItem('fitness-db-id', dbProfile.id);
         return { success: true };
       }
       return { success: false, message: '닉네임 또는 비밀번호가 일치하지 않습니다.' };
@@ -158,7 +182,7 @@ export const FitnessProvider = ({ children }) => {
     }
   }, []);
 
-  const calculateFitness = useCallback((data) => {
+  const calculateFitness = useCallback(async (data) => {
     const { height, weight, gender, age, activity, deficit } = data;
 
     // Mifflin-St Jeor Equation
@@ -181,9 +205,9 @@ export const FitnessProvider = ({ children }) => {
     const carbGrams = Math.max(0, carbKcal / 4);
 
     const newProfile = {
-      ...profile, // Keep existing fields like profileImage
-      ...data,    // Overwrite with new form data
-      nickname: data.nickname || profile.nickname, // Ensure nickname is never lost
+      ...profile,
+      ...data,
+      nickname: data.nickname || profile.nickname,
       height: parseFloat(data.height) || profile.height,
       bmr: bmr ? Math.round(bmr) : profile.bmr,
       tdee: tdee ? Math.round(tdee) : profile.tdee,
@@ -196,69 +220,60 @@ export const FitnessProvider = ({ children }) => {
       isSetup: true
     };
 
-    setProfile(newProfile);
-    localStorage.setItem('fitness-profile', JSON.stringify(newProfile));
-
-    // Sync to DB
-    const syncToDb = async (p) => {
-      try {
-        if (p.dbId) {
-          await sql`
-            UPDATE "Profile" SET
-              nickname = ${p.nickname},
-              gender = ${p.gender},
-              height = ${parseFloat(p.height)},
-              weight = ${parseFloat(p.weight)},
-              age = ${parseInt(p.age)},
-              activity = ${parseFloat(p.activity)},
-              deficit = ${parseInt(p.deficit)},
-              track = ${p.track},
-              points = ${p.points},
-              password = ${p.password},
-              bmr = ${p.bmr},
-              "targetCalories" = ${p.targetCalories},
-              status = ${p.status},
-              "updatedAt" = NOW()
-            WHERE id = ${p.dbId}
-          `;
-        } else {
-          const result = await sql`
-            INSERT INTO "Profile" (
-              id, nickname, gender, height, weight, age, activity, deficit, track, points, password, bmr, "targetCalories", status, "createdAt", "updatedAt"
-            ) VALUES (
-              gen_random_uuid(), ${p.nickname}, ${p.gender}, ${parseFloat(p.height)}, ${parseFloat(p.weight)}, ${parseInt(p.age)}, ${parseFloat(p.activity)}, ${parseInt(p.deficit)}, ${p.track}, ${p.points}, ${p.password}, ${p.bmr}, ${p.targetCalories}, ${p.status}, NOW(), NOW()
-            ) RETURNING id
-          `;
-          if (result && result[0]) {
-            const newDbId = result[0].id;
-            localStorage.setItem('fitness-db-id', newDbId);
-            setProfile(prev => ({ ...prev, dbId: newDbId }));
-          }
+    // Await sync to DB to ensure we have a dbId before returning/navigating
+    try {
+      if (newProfile.dbId) {
+        await sql`
+          UPDATE "Profile" SET
+            nickname = ${newProfile.nickname},
+            gender = ${newProfile.gender},
+            height = ${parseFloat(newProfile.height)},
+            weight = ${parseFloat(newProfile.weight)},
+            age = ${parseInt(newProfile.age)},
+            activity = ${parseFloat(newProfile.activity)},
+            deficit = ${parseInt(newProfile.deficit)},
+            track = ${newProfile.track},
+            points = ${newProfile.points},
+            password = ${newProfile.password},
+            bmr = ${newProfile.bmr},
+            "targetCalories" = ${newProfile.targetCalories},
+            status = ${newProfile.status},
+            "updatedAt" = NOW()
+          WHERE id = ${newProfile.dbId}
+        `;
+      } else {
+        const result = await sql`
+          INSERT INTO "Profile" (
+            id, nickname, gender, height, weight, age, activity, deficit, track, points, password, bmr, "targetCalories", status, "createdAt", "updatedAt"
+          ) VALUES (
+            gen_random_uuid(), ${newProfile.nickname}, ${newProfile.gender}, ${parseFloat(newProfile.height)}, ${parseFloat(newProfile.weight)}, ${parseInt(newProfile.age)}, ${parseFloat(newProfile.activity)}, ${parseInt(newProfile.deficit)}, ${newProfile.track}, ${newProfile.points}, ${newProfile.password}, ${newProfile.bmr}, ${newProfile.targetCalories}, ${newProfile.status}, NOW(), NOW()
+          ) RETURNING id
+        `;
+        if (result && result[0]) {
+          newProfile.dbId = result[0].id;
         }
-      } catch (error) {
-        console.error('Failed to sync to DB:', error);
       }
-    };
+    } catch (error) {
+      console.error('Failed to sync to DB:', error);
+    }
 
-    syncToDb(newProfile);
-
+    setProfile(newProfile);
     return newProfile;
   }, [profile]);
 
   const updatePoints = useCallback(async (amount) => {
-    const newPoints = profile.points + amount;
-    const newProfile = { ...profile, points: newPoints };
-    setProfile(newProfile);
-    localStorage.setItem('fitness-profile', JSON.stringify(newProfile));
+    setProfile(prev => {
+      const newPoints = prev.points + amount;
+      const newProfile = { ...prev, points: newPoints };
 
-    if (profile.dbId) {
-      try {
-        await sql`UPDATE "Profile" SET points = ${newPoints}, "updatedAt" = NOW() WHERE id = ${profile.dbId}`;
-      } catch (err) {
-        console.error('Score sync failed:', err);
+      if (prev.dbId) {
+        sql`UPDATE "Profile" SET points = ${newPoints}, "updatedAt" = NOW() WHERE id = ${prev.dbId}`
+          .catch(err => console.error('Score sync failed:', err));
       }
-    }
-  }, [profile]);
+
+      return newProfile;
+    });
+  }, []);
 
   return (
     <FitnessContext.Provider value={{ profile, setProfile, calculateFitness, updatePoints, login, logout }}>
