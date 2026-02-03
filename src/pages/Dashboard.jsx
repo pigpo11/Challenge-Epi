@@ -64,7 +64,7 @@ const Dashboard = () => {
         if (!file) return;
 
         // Image compression function using Canvas
-        const compressImage = (file, maxWidth = 1200, quality = 0.7) => {
+        const compressImage = (file, maxWidth = 800, quality = 0.6) => {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onload = (event) => {
@@ -131,9 +131,10 @@ const Dashboard = () => {
                     await sql`UPDATE "Profile" SET points = ${newProfile.points} WHERE id = ${targetDbId}`;
 
                     // 2. Create Community Post
+                    const postId = crypto.randomUUID();
                     await sql`
                         INSERT INTO "Post" (id, "profileId", type, image, likes, "createdAt")
-                        VALUES (gen_random_uuid(), ${targetDbId}, ${type}, ${base64String}, 0, NOW())
+                        VALUES (${postId}, ${targetDbId}, ${type}, ${base64String}, 0, NOW())
                     `;
 
                     // Refetch rankings after DB update

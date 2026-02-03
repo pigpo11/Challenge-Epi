@@ -62,7 +62,7 @@ const Settings = () => {
         if (!file) return;
 
         // Image compression function using Canvas
-        const compressImage = (file, maxWidth = 400, quality = 0.8) => {
+        const compressImage = (file, maxWidth = 400, quality = 0.6) => {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onload = (event) => {
