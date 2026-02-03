@@ -229,7 +229,7 @@ const Settings = () => {
 
                         <div style={{ flex: 1 }}>
                             <div style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '2px' }}>{profile.nickname}</div>
-                            <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>{profile.gender === 'male' ? '남성' : '여성'} · {profile.age}세(만)</div>
+                            <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>{profile.gender === 'male' ? '남성' : '여성'} · {profile.age}세</div>
                         </div>
                         <button
                             onClick={() => {
@@ -269,7 +269,7 @@ const Settings = () => {
                                         <input type="number" value={userInfo.weight} onChange={(e) => setUserInfo({ ...userInfo, weight: e.target.value })} style={{ padding: '0.75rem 0.5rem', fontSize: '0.9rem' }} />
                                     </div>
                                     <div className="input-group" style={{ marginBottom: 0, minWidth: 0 }}>
-                                        <label style={{ fontSize: '0.75rem' }}>나이 (만)</label>
+                                        <label style={{ fontSize: '0.75rem' }}>나이</label>
                                         <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                                             <input
                                                 type="number"
@@ -337,7 +337,7 @@ const Settings = () => {
                                 </div>
                                 <div className="glass-card" style={{ padding: '1rem', textAlign: 'center' }}>
                                     <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '4px' }}>나이</div>
-                                    <div style={{ fontWeight: 700 }}>{profile.age}세(만)</div>
+                                    <div style={{ fontWeight: 700 }}>{profile.age}세</div>
                                 </div>
                             </div>
                         )}

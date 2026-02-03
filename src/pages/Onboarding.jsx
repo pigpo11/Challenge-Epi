@@ -248,7 +248,7 @@ const Onboarding = () => {
                                 </div>
                             </div>
                             <div className="input-group">
-                                <label>나이 (만)</label>
+                                <label>나이</label>
                                 <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                                     <input
                                         type="number"
