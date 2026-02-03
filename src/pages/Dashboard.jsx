@@ -15,30 +15,32 @@ const Dashboard = () => {
     const [rankings, setRankings] = useState([]);
     const [loadingRankings, setLoadingRankings] = useState(true);
 
+    const fetchRankings = async () => {
+        try {
+            setLoadingRankings(true);
+            const results = await sql`
+                SELECT id, nickname as name, points as score, status, "profileImage"
+                FROM "Profile"
+                ORDER BY points DESC
+                LIMIT 5
+            `;
+            const formatted = results.map((user, index) => ({
+                rank: index + 1,
+                name: user.name,
+                score: Number(user.score) || 0,
+                status: user.status || '오늘도 화이팅!',
+                profileImage: user.profileImage,
+                isMe: user.id === profile.dbId
+            }));
+            setRankings(formatted);
+        } catch (err) {
+            console.error('Failed to fetch rankings:', err);
+        } finally {
+            setLoadingRankings(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchRankings = async () => {
-            try {
-                const results = await sql`
-                    SELECT id, nickname as name, points as score, status, "profileImage"
-                    FROM "Profile"
-                    ORDER BY points DESC
-                    LIMIT 5
-                `;
-                const formatted = results.map((user, index) => ({
-                    rank: index + 1,
-                    name: user.name,
-                    score: Number(user.score) || 0,
-                    status: user.status || '오늘도 화이팅!',
-                    profileImage: user.profileImage,
-                    isMe: user.id === profile.dbId
-                }));
-                setRankings(formatted);
-            } catch (err) {
-                console.error('Failed to fetch rankings:', err);
-            } finally {
-                setLoadingRankings(false);
-            }
-        };
         fetchRankings();
     }, [profile.points, profile.dbId]);
 
@@ -129,10 +131,8 @@ const Dashboard = () => {
                 }
 
                 try {
-                    setLoadingRankings(true);
-
                     // 1. Update points (Try to verify profile existence)
-                    const updateResult = await sql`UPDATE "Profile" SET points = ${newProfile.points}, "updatedAt" = NOW() WHERE id = ${targetDbId}`;
+                    await sql`UPDATE "Profile" SET points = ${newProfile.points}, "updatedAt" = NOW() WHERE id = ${targetDbId}`;
 
                     // 2. Create Community Post - Using the primary postId generated above
                     await sql`
@@ -140,17 +140,12 @@ const Dashboard = () => {
                         VALUES (${postId}, ${targetDbId}, ${type}, ${base64String}, 0, NOW())
                     `;
 
-                    // Certification state is already updated locally at line 120 with the correct postId.
-                    // No need to setProfile again here with a new ID.
-
                     // Refetch rankings after DB update
                     await fetchRankings();
                     alert(`${type === 'diet' ? '식단' : '운동'} 인증 완료! 10pts가 적립되었고 커뮤니티에 공유되었습니다.`);
                 } catch (err) {
                     console.error('DB Sync failed detail:', err);
                     alert(`서버 저장 실패: ${err.message || '알 수 없는 오류'}\n(이미지 용량을 줄이거나 네트워크를 확인해주세요)`);
-                } finally {
-                    setLoadingRankings(false);
                 }
             } catch (err) {
                 console.error('Image processing failed:', err);

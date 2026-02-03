@@ -56,7 +56,11 @@ const Community = () => {
                 }
 
                 const formattedPosts = postResults.map(p => {
-                    const dateObj = new Date(p.time);
+                    // Normalize DB string to UTC if it lacks timezone info
+                    const dateObj = (typeof p.time === 'string' && !p.time.includes('Z') && !p.time.includes('+'))
+                        ? new Date(p.time.replace(' ', 'T') + 'Z')
+                        : new Date(p.time);
+
                     const formattedDate = dateObj.toLocaleDateString('ko-KR', {
                         year: 'numeric',
                         month: '2-digit',
