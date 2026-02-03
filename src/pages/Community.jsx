@@ -53,8 +53,17 @@ const Community = () => {
 
                 const formattedPosts = postResults.map(p => {
                     const dateObj = new Date(p.time);
-                    const formattedDate = `${dateObj.getFullYear()}.${String(dateObj.getMonth() + 1).padStart(2, '0')}.${String(dateObj.getDate()).padStart(2, '0')}`;
-                    const formattedTime = `${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}`;
+                    const formattedDate = dateObj.toLocaleDateString('ko-KR', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit'
+                    }).replace(/\. /g, '.').replace(/\.$/, '');
+
+                    const formattedTime = dateObj.toLocaleTimeString('ko-KR', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: false
+                    });
 
                     return {
                         ...p,
