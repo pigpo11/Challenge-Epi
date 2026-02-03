@@ -329,18 +329,20 @@ const Community = () => {
                                                 {post.comments.map(comment => {
                                                     const canDelete = post.user === profile.nickname || comment.user === profile.nickname;
                                                     return (
-                                                        <div key={comment.id} style={{ fontSize: '0.85rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                                            <div style={{ display: 'flex', gap: '8px', flex: 1 }}>
-                                                                <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)', overflow: 'hidden', flexShrink: 0, marginTop: '2px' }}>
+                                                        <div key={comment.id} style={{ fontSize: '0.85rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+                                                                <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)', overflow: 'hidden', flexShrink: 0 }}>
                                                                     {comment.profileImage ? (
                                                                         <img src={comment.profileImage} alt="댓글 프로필" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                                     ) : (
-                                                                        <UserIcon size={14} color="var(--text-muted)" style={{ margin: '5px' }} />
+                                                                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                                            <UserIcon size={14} color="var(--text-muted)" />
+                                                                        </div>
                                                                     )}
                                                                 </div>
-                                                                <div style={{ flex: 1 }}>
-                                                                    <span style={{ fontWeight: 700, marginRight: '6px' }}>{comment.user}</span>
-                                                                    <span style={{ color: '#eee' }}>{comment.text}</span>
+                                                                <div style={{ flex: 1, display: 'flex', alignItems: 'baseline', gap: '6px', flexWrap: 'wrap' }}>
+                                                                    <span style={{ fontWeight: 700 }}>{comment.user}</span>
+                                                                    <span style={{ color: '#eee', lineHeight: '1.4' }}>{comment.text}</span>
                                                                 </div>
                                                             </div>
                                                             {canDelete && (
