@@ -159,10 +159,12 @@ const Dashboard = () => {
     };
 
     const handleDeleteCert = async (type, index) => {
-        if (!window.confirm('기록을 삭제하시겠습니까? 적립된 포인트(10pts)도 회수됩니다.')) return;
+        if (!window.confirm('기록을 삭제하시겠습니까?')) return;
 
         const newProfile = { ...profile };
         const imageToDelete = type === 'diet' ? profile.certs.diet[index] : profile.certs.workout;
+
+        if (!imageToDelete) return; // Guard clause
 
         if (type === 'diet') {
             newProfile.certs.diet = profile.certs.diet.filter((_, i) => i !== index);
@@ -170,27 +172,27 @@ const Dashboard = () => {
             newProfile.certs.workout = null;
         }
 
-        newProfile.points = Math.max(0, (profile.points || 0) - 10);
+        // Local State Update (Note: Point deduction is handled via the separate Community Post deletion if needed, 
+        // but here we follow request to not deduct again/avoid double deduction)
         setProfile(newProfile);
 
         // Sync to DB
         if (profile.dbId) {
             try {
-                // 1. Update points
-                await sql`UPDATE "Profile" SET points = ${newProfile.points} WHERE id = ${profile.dbId}`;
-
-                // 2. Delete the post from Community
-                // If we have an ID (new format), use it for precise deletion. Otherwise fallback to image match.
-                if (imageToDelete && typeof imageToDelete === 'object' && imageToDelete.id) {
+                // Delete the post from Community (This will effectively remove the certification record)
+                if (typeof imageToDelete === 'object' && imageToDelete.id) {
                     await sql`DELETE FROM "Post" WHERE id = ${imageToDelete.id}`;
                 } else {
-                    await sql`DELETE FROM "Post" WHERE "profileId" = ${profile.dbId} AND image = ${typeof imageToDelete === 'string' ? imageToDelete : imageToDelete?.image}`;
+                    const imgStr = typeof imageToDelete === 'string' ? imageToDelete : (imageToDelete?.image || '');
+                    if (imgStr) {
+                        await sql`DELETE FROM "Post" WHERE "profileId" = ${profile.dbId} AND image = ${imgStr}`;
+                    }
                 }
 
                 await fetchRankings();
             } catch (err) {
                 console.error('Delete sync failed:', err);
-                alert('서버 저장소 데이터 삭제에 실패했습니다.');
+                // Silence the error if the record was already deleted by Community view
             }
         }
 

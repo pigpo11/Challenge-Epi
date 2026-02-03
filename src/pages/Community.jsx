@@ -7,7 +7,7 @@ import sql from '../services/database';
 import BottomNav from '../components/BottomNav';
 
 const Community = () => {
-    const { profile } = useFitness();
+    const { profile, setProfile } = useFitness();
     const navigate = useNavigate();
 
     const [posts, setPosts] = useState([]);
@@ -224,8 +224,24 @@ const Community = () => {
             // Delete post
             await sql`DELETE FROM "Post" WHERE id = ${post.id}`;
 
-            // Update local profile state
-            setProfile(prev => ({ ...prev, points: newPoints }));
+            // Sync local profile state: remove from certs and update points
+            setProfile(prev => {
+                const newCerts = { ...prev.certs };
+                if (post.type === 'diet') {
+                    newCerts.diet = (newCerts.diet || []).filter(c =>
+                        typeof c === 'string' ? c !== post.image : c.id !== post.id
+                    );
+                } else {
+                    const workoutCert = newCerts.workout;
+                    if (workoutCert) {
+                        const isMatch = typeof workoutCert === 'string'
+                            ? workoutCert === post.image
+                            : workoutCert.id === post.id;
+                        if (isMatch) newCerts.workout = null;
+                    }
+                }
+                return { ...prev, points: newPoints, certs: newCerts };
+            });
         } catch (err) {
             console.error('Failed to delete post:', err);
             alert('게시글 삭제에 실패했습니다.');
