@@ -62,21 +62,39 @@ const Settings = () => {
         if (!file) return;
 
         const reader = new FileReader();
-        reader.onloadend = () => {
+        reader.onloadend = async () => {
             const base64String = reader.result;
             const newProfile = { ...profile, profileImage: base64String };
             saveProfile(newProfile);
             setUserInfo(prev => ({ ...prev, profileImage: base64String }));
+
+            // DB Sync
+            if (profile.dbId) {
+                try {
+                    await sql`UPDATE "Profile" SET "profileImage" = ${base64String}, "updatedAt" = NOW() WHERE id = ${profile.dbId}`;
+                } catch (err) {
+                    console.error('Failed to sync profile image to DB:', err);
+                }
+            }
         };
         reader.readAsDataURL(file);
     };
 
-    const handleDeleteProfileImage = (e) => {
+    const handleDeleteProfileImage = async (e) => {
         e.stopPropagation();
         if (!window.confirm('프로필 사진을 삭제하시겠습니까?')) return;
         const newProfile = { ...profile, profileImage: null };
         saveProfile(newProfile);
         setUserInfo(prev => ({ ...prev, profileImage: null }));
+
+        // DB Sync
+        if (profile.dbId) {
+            try {
+                await sql`UPDATE "Profile" SET "profileImage" = NULL, "updatedAt" = NOW() WHERE id = ${profile.dbId}`;
+            } catch (err) {
+                console.error('Failed to delete profile image from DB:', err);
+            }
+        }
     };
 
     const handleAddInBody = () => {

@@ -252,15 +252,16 @@ export const FitnessProvider = ({ children }) => {
             bmr = ${newProfile.bmr},
             "targetCalories" = ${newProfile.targetCalories},
             status = ${newProfile.status},
+            "profileImage" = ${newProfile.profileImage},
             "updatedAt" = NOW()
           WHERE id = ${newProfile.dbId}
         `;
       } else {
         const result = await sql`
           INSERT INTO "Profile" (
-            id, nickname, gender, height, weight, age, activity, deficit, track, points, password, bmr, "targetCalories", status, "createdAt", "updatedAt"
+            id, nickname, gender, height, weight, age, activity, deficit, track, points, password, bmr, "targetCalories", status, "profileImage", "createdAt", "updatedAt"
           ) VALUES (
-            gen_random_uuid(), ${newProfile.nickname}, ${newProfile.gender}, ${parseFloat(newProfile.height)}, ${parseFloat(newProfile.weight)}, ${parseInt(newProfile.age)}, ${parseFloat(newProfile.activity)}, ${parseInt(newProfile.deficit)}, ${newProfile.track}, ${newProfile.points}, ${newProfile.password}, ${newProfile.bmr}, ${newProfile.targetCalories}, ${newProfile.status}, NOW(), NOW()
+            gen_random_uuid(), ${newProfile.nickname}, ${newProfile.gender}, ${parseFloat(newProfile.height)}, ${parseFloat(newProfile.weight)}, ${parseInt(newProfile.age)}, ${parseFloat(newProfile.activity)}, ${parseInt(newProfile.deficit)}, ${newProfile.track}, ${newProfile.points}, ${newProfile.password}, ${newProfile.bmr}, ${newProfile.targetCalories}, ${newProfile.status}, ${newProfile.profileImage}, NOW(), NOW()
           ) RETURNING id
         `;
         if (result && result[0]) {

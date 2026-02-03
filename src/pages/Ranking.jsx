@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ChevronLeft, Trophy, Loader2 } from 'lucide-react';
+import { ChevronLeft, Trophy, Loader2, User } from 'lucide-react';
 import { useFitness } from '../hooks/useFitness';
 import sql from '../services/database';
 
@@ -15,7 +15,7 @@ const Ranking = () => {
         const fetchRankings = async () => {
             try {
                 const results = await sql`
-                    SELECT nickname as name, points as score, status, id
+                    SELECT nickname as name, points as score, status, id, "profileImage"
                     FROM "Profile"
                     ORDER BY points DESC
                     LIMIT 20
@@ -24,8 +24,9 @@ const Ranking = () => {
                 const formatted = results.map((user, index) => ({
                     rank: index + 1,
                     name: user.name,
-                    score: user.score || 0,
+                    score: Number(user.score) || 0,
                     status: user.status || '파이팅!',
+                    profileImage: user.profileImage,
                     isMe: user.id === profile.dbId
                 }));
 
@@ -90,7 +91,14 @@ const Ranking = () => {
                                 <div style={{ width: '40px', fontSize: '1.1rem', fontWeight: 800, color: user.rank <= 3 ? 'var(--primary)' : 'var(--text-muted)', textAlign: 'center' }}>
                                     {user.rank}
                                 </div>
-                                <div style={{ flex: 1, marginLeft: '1rem' }}>
+                                <div style={{ marginLeft: '1rem', width: '36px', height: '36px', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', overflow: 'hidden', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    {user.profileImage ? (
+                                        <img src={user.profileImage} alt="프로필" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    ) : (
+                                        <User size={18} color="var(--text-muted)" />
+                                    )}
+                                </div>
+                                <div style={{ flex: 1, marginLeft: '0.75rem' }}>
                                     <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                         {user.name}
                                         {user.isMe && <span className="badge" style={{ fontSize: '0.65rem', padding: '1px 6px' }}>나</span>}

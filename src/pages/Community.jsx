@@ -26,7 +26,8 @@ const Community = () => {
                         p.likes, 
                         p."createdAt" as time,
                         pr.nickname as user,
-                        pr.id as "profileId"
+                        pr.id as "profileId",
+                        pr."profileImage"
                     FROM "Post" p
                     JOIN "Profile" pr ON p."profileId" = pr.id
                     ORDER BY p."createdAt" DESC
@@ -39,7 +40,8 @@ const Community = () => {
                         c."postId", 
                         c.text, 
                         c."createdAt", 
-                        pr.nickname as user
+                        pr.nickname as user,
+                        pr."profileImage"
                     FROM "Comment" c
                     JOIN "Profile" pr ON c."profileId" = pr.id
                     ORDER BY c."createdAt" ASC
@@ -92,7 +94,7 @@ const Community = () => {
                     ...post,
                     comments: [
                         ...post.comments,
-                        { id: tempId, user: profile.nickname || '나', text: text }
+                        { id: tempId, user: profile.nickname || '나', text: text, profileImage: profile.profileImage }
                     ]
                 };
             }
@@ -216,8 +218,12 @@ const Community = () => {
                                 >
                                     {/* User Info */}
                                     <div style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                        <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                            <UserIcon size={20} color="var(--text-muted)" />
+                                        <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                                            {post.profileImage ? (
+                                                <img src={post.profileImage} alt="프로필" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            ) : (
+                                                <UserIcon size={20} color="var(--text-muted)" />
+                                            )}
                                         </div>
                                         <div style={{ flex: 1 }}>
                                             <div style={{ fontWeight: 800, fontSize: '1rem', color: '#fff' }}>{post.user}</div>
@@ -263,9 +269,18 @@ const Community = () => {
                                                     const canDelete = post.user === profile.nickname || comment.user === profile.nickname;
                                                     return (
                                                         <div key={comment.id} style={{ fontSize: '0.85rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                                            <div style={{ flex: 1 }}>
-                                                                <span style={{ fontWeight: 700, marginRight: '6px' }}>{comment.user}</span>
-                                                                <span style={{ color: '#eee' }}>{comment.text}</span>
+                                                            <div style={{ display: 'flex', gap: '8px', flex: 1 }}>
+                                                                <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)', overflow: 'hidden', flexShrink: 0, marginTop: '2px' }}>
+                                                                    {comment.profileImage ? (
+                                                                        <img src={comment.profileImage} alt="댓글 프로필" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                                    ) : (
+                                                                        <UserIcon size={14} color="var(--text-muted)" style={{ margin: '5px' }} />
+                                                                    )}
+                                                                </div>
+                                                                <div style={{ flex: 1 }}>
+                                                                    <span style={{ fontWeight: 700, marginRight: '6px' }}>{comment.user}</span>
+                                                                    <span style={{ color: '#eee' }}>{comment.text}</span>
+                                                                </div>
                                                             </div>
                                                             {canDelete && (
                                                                 <button

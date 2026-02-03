@@ -15,29 +15,32 @@ const Dashboard = () => {
     const [rankings, setRankings] = useState([]);
     const [loadingRankings, setLoadingRankings] = useState(true);
 
-    const fetchRankings = async () => {
-        try {
-            const results = await sql`
-                SELECT nickname as name, points as score, status, id
-                FROM "Profile"
-                ORDER BY points DESC
-                LIMIT 5
-            `;
-            setRankings(results.map((u, i) => ({
-                ...u,
-                rank: i + 1,
-                isMe: u.id === profile.dbId
-            })));
-        } catch (err) {
-            console.error('Failed to fetch rankings:', err);
-        } finally {
-            setLoadingRankings(false);
-        }
-    };
-
     useEffect(() => {
+        const fetchRankings = async () => {
+            try {
+                const results = await sql`
+                    SELECT id, nickname as name, points as score, status, "profileImage"
+                    FROM "Profile"
+                    ORDER BY points DESC
+                    LIMIT 5
+                `;
+                const formatted = results.map((user, index) => ({
+                    rank: index + 1,
+                    name: user.name,
+                    score: Number(user.score) || 0,
+                    status: user.status || '오늘도 화이팅!',
+                    profileImage: user.profileImage,
+                    isMe: user.id === profile.dbId
+                }));
+                setRankings(formatted);
+            } catch (err) {
+                console.error('Failed to fetch rankings:', err);
+            } finally {
+                setLoadingRankings(false);
+            }
+        };
         fetchRankings();
-    }, [profile.dbId]);
+    }, [profile.points, profile.dbId]);
 
 
     const handleCertify = (type) => {
@@ -225,8 +228,8 @@ const Dashboard = () => {
                                     {user.rank}
                                 </div>
                                 <div style={{ marginLeft: '1rem', width: '36px', height: '36px', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', overflow: 'hidden', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    {user.isMe && profile.profileImage ? (
-                                        <img src={profile.profileImage} alt="프로필" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    {user.profileImage ? (
+                                        <img src={user.profileImage} alt="프로필" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                     ) : (
                                         <User size={18} color="var(--text-muted)" />
                                     )}
