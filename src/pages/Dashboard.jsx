@@ -142,7 +142,7 @@ const Dashboard = () => {
 
                     // Refetch rankings after DB update
                     await fetchRankings();
-                    alert(`${type === 'diet' ? '식단' : '운동'} 인증 완료! 10pts가 적립되었고 커뮤니티에 공유되었습니다.`);
+                    alert(`${type === 'diet' ? '식단' : '운동'} 인증 완료 +10pts\n커뮤니티를 확인하세요👍`);
                 } catch (err) {
                     console.error('DB Sync failed detail:', err);
                     alert(`서버 저장 실패: ${err.message || '알 수 없는 오류'}\n(이미지 용량을 줄이거나 네트워크를 확인해주세요)`);
