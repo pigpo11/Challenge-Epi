@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useFitness } from '../hooks/useFitness';
 import { motion } from 'framer-motion';
-import { MessageCircle, Heart, User as UserIcon, Home, MessageSquare, ChevronLeft, X, Loader2, Camera } from 'lucide-react';
+import { MessageCircle, Heart, User as UserIcon, Home, MessageSquare, ChevronLeft, X, Loader2, Camera, Trash2 } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import sql from '../services/database';
 import BottomNav from '../components/BottomNav';
@@ -159,6 +159,29 @@ const Community = () => {
         }
     };
 
+    const handleDeletePost = async (post) => {
+        if (!window.confirm('인증 게시글을 삭제하시겠습니까? 적립된 포인트(10pts)도 회수됩니다.')) return;
+
+        // 1. UI Update
+        setPosts(prev => prev.filter(p => p.id !== post.id));
+
+        // 2. DB Sync
+        try {
+            // Deduct points
+            const newPoints = Math.max(0, (profile.points || 0) - 10);
+            await sql`UPDATE "Profile" SET points = ${newPoints} WHERE id = ${profile.dbId}`;
+
+            // Delete post
+            await sql`DELETE FROM "Post" WHERE id = ${post.id}`;
+
+            // Update local profile state
+            setProfile(prev => ({ ...prev, points: newPoints }));
+        } catch (err) {
+            console.error('Failed to delete post:', err);
+            alert('게시글 삭제에 실패했습니다.');
+        }
+    };
+
     return (
         <div style={{ paddingBottom: '8rem' }}>
             <header style={{ padding: '1.5rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.75rem', position: 'sticky', top: 0, background: 'var(--bg-dark)', zIndex: 10 }}>
@@ -202,6 +225,14 @@ const Community = () => {
                                                 {post.date} {post.time} · <span style={{ color: 'var(--primary)', fontWeight: 600 }}>{post.type === 'diet' ? '식단 인증' : '운동 인증'}</span>
                                             </div>
                                         </div>
+                                        {post.profileId === profile.dbId && (
+                                            <button
+                                                onClick={() => handleDeletePost(post)}
+                                                style={{ background: 'none', color: 'rgba(255,255,255,0.2)', padding: '8px' }}
+                                            >
+                                                <Trash2 size={18} />
+                                            </button>
+                                        )}
                                     </div>
 
                                     {/* Image */}
