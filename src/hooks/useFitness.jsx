@@ -46,7 +46,7 @@ export const FitnessProvider = ({ children }) => {
     // Monthly points reset, Daily certifications reset
     const today = new Date();
     const currentMonth = `${today.getFullYear()}-${today.getMonth() + 1}`;
-    const currentDate = today.toISOString().split('T')[0]; // YYYY-MM-DD
+    const currentDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`; // YYYY-MM-DD (local)
 
     const lastResetMonth = localStorage.getItem('last-reset-month');
     const lastResetDate = localStorage.getItem('last-reset-date');
