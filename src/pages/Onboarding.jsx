@@ -4,7 +4,7 @@ import { useFitness } from '../hooks/useFitness';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, ChevronLeft, Loader2 } from 'lucide-react';
 import { useRef, useEffect } from 'react';
-import sql from '../services/database';
+import supabase from '../services/database';
 
 const Onboarding = () => {
     const { calculateFitness, profile } = useFitness();
@@ -33,7 +33,12 @@ const Onboarding = () => {
             setLoading(true);
             setNicknameError('');
             try {
-                const results = await sql`SELECT id FROM "Profile" WHERE nickname = ${nickname} LIMIT 1`;
+                const { data: results, error } = await supabase
+                    .from('Profile')
+                    .select('id')
+                    .eq('nickname', nickname)
+                    .limit(1);
+                if (error) throw error;
                 if (results && results.length > 0) {
                     setNicknameError('이미 사용 중인 닉네임입니다.');
                     setLoading(false);

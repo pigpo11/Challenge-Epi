@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Camera, MessageSquareCode, Plus, Activity, Trash2, User, Save, Edit2, TrendingDown, Target, Zap, Utensils, X, Loader2 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import BottomNav from '../components/BottomNav';
-import sql from '../services/database';
+import supabase from '../services/database';
 
 const Settings = () => {
     const navigate = useNavigate();
@@ -33,7 +33,11 @@ const Settings = () => {
 
         if (profile.dbId) {
             try {
-                await sql`UPDATE "Profile" SET status = ${statusText}, "updatedAt" = NOW() WHERE id = ${profile.dbId}`;
+                const { error } = await supabase
+                    .from('Profile')
+                    .update({ status: statusText, updatedAt: new Date().toISOString() })
+                    .eq('id', profile.dbId);
+                if (error) throw error;
                 alert('상태 메시지가 변경되었습니다.');
             } catch (err) {
                 console.error('Failed to update status in DB:', err);
@@ -106,7 +110,11 @@ const Settings = () => {
                 // DB Sync
                 if (profile.dbId) {
                     try {
-                        await sql`UPDATE "Profile" SET "profileImage" = ${base64String}, "updatedAt" = NOW() WHERE id = ${profile.dbId}`;
+                        const { error } = await supabase
+                            .from('Profile')
+                            .update({ profileImage: base64String, updatedAt: new Date().toISOString() })
+                            .eq('id', profile.dbId);
+                        if (error) throw error;
                     } catch (err) {
                         console.error('Failed to sync profile image to DB:', err);
                         alert('프로필 이미지 저장에 실패했습니다.');
@@ -131,7 +139,11 @@ const Settings = () => {
         // DB Sync
         if (profile.dbId) {
             try {
-                await sql`UPDATE "Profile" SET "profileImage" = NULL, "updatedAt" = NOW() WHERE id = ${profile.dbId}`;
+                const { error } = await supabase
+                    .from('Profile')
+                    .update({ profileImage: null, updatedAt: new Date().toISOString() })
+                    .eq('id', profile.dbId);
+                if (error) throw error;
             } catch (err) {
                 console.error('Failed to delete profile image from DB:', err);
             }
@@ -181,17 +193,17 @@ const Settings = () => {
         const fetchUserPosts = async () => {
             if (!profile.dbId) return;
             try {
-                const results = await sql`
-                    SELECT id, type, image, "createdAt" as time
-                    FROM "Post"
-                    WHERE "profileId" = ${profile.dbId}
-                    ORDER BY "createdAt" DESC
-                `;
+                const { data: results, error } = await supabase
+                    .from('Post')
+                    .select('id, type, image, createdAt')
+                    .eq('profileId', profile.dbId)
+                    .order('createdAt', { ascending: false });
+                if (error) throw error;
 
                 // Group by date string (YYYY-MM-DD)
-                const groups = results.reduce((acc, post) => {
-                    if (!post.time) return acc;
-                    const date = new Date(post.time).toLocaleDateString('ko-KR', {
+                const groups = (results || []).reduce((acc, post) => {
+                    if (!post.createdAt) return acc;
+                    const date = new Date(post.createdAt).toLocaleDateString('ko-KR', {
                         month: 'long',
                         day: 'numeric',
                         weekday: 'short'

@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import sql from '../services/database';
+import supabase from '../services/database';
 
 const FitnessContext = createContext();
 
@@ -115,7 +115,12 @@ export const FitnessProvider = ({ children }) => {
     const syncFromDb = async () => {
       if (profile.dbId) {
         try {
-          const results = await sql`SELECT * FROM "Profile" WHERE id = ${profile.dbId}`;
+          const { data: results, error } = await supabase
+            .from('Profile')
+            .select('*')
+            .eq('id', profile.dbId);
+          if (error) throw error;
+
           if (results && results[0]) {
             const dbProfile = results[0];
             const stats = getCalculatedStats(dbProfile);
@@ -156,7 +161,8 @@ export const FitnessProvider = ({ children }) => {
       if (lastReset && lastReset !== currentMonth && profile.dbId) {
         try {
           // Reset ALL users for the new month challenge
-          await sql`UPDATE "Profile" SET points = 0`;
+          const { error } = await supabase.rpc('reset_all_points');
+          if (error) throw error;
 
           console.log('Monthly Reset Completed');
           localStorage.setItem('last-reset-month', currentMonth);
@@ -202,7 +208,13 @@ export const FitnessProvider = ({ children }) => {
 
   const login = useCallback(async (nickname, password) => {
     try {
-      const results = await sql`SELECT * FROM "Profile" WHERE nickname = ${nickname} AND password = ${password}`;
+      const { data: results, error } = await supabase
+        .from('Profile')
+        .select('*')
+        .eq('nickname', nickname)
+        .eq('password', password);
+      if (error) throw error;
+
       if (results && results[0]) {
         const dbProfile = results[0];
         const stats = getCalculatedStats(dbProfile);
@@ -237,33 +249,48 @@ export const FitnessProvider = ({ children }) => {
     // Await sync to DB to ensure we have a dbId before returning/navigating
     try {
       if (newProfile.dbId) {
-        await sql`
-          UPDATE "Profile" SET
-            nickname = ${newProfile.nickname},
-            gender = ${newProfile.gender},
-            height = ${parseFloat(newProfile.height)},
-            weight = ${parseFloat(newProfile.weight)},
-            age = ${parseInt(newProfile.age)},
-            activity = ${parseFloat(newProfile.activity)},
-            deficit = ${parseInt(newProfile.deficit)},
-            track = ${newProfile.track},
-            points = ${newProfile.points},
-            password = ${newProfile.password},
-            bmr = ${newProfile.bmr},
-            "targetCalories" = ${newProfile.targetCalories},
-            status = ${newProfile.status},
-            "profileImage" = ${newProfile.profileImage},
-            "updatedAt" = NOW()
-          WHERE id = ${newProfile.dbId}
-        `;
+        const { error } = await supabase
+          .from('Profile')
+          .update({
+            nickname: newProfile.nickname,
+            gender: newProfile.gender,
+            height: parseFloat(newProfile.height),
+            weight: parseFloat(newProfile.weight),
+            age: parseInt(newProfile.age),
+            activity: parseFloat(newProfile.activity),
+            deficit: parseInt(newProfile.deficit),
+            track: newProfile.track,
+            points: newProfile.points,
+            password: newProfile.password,
+            bmr: newProfile.bmr,
+            targetCalories: newProfile.targetCalories,
+            status: newProfile.status,
+            profileImage: newProfile.profileImage,
+            updatedAt: new Date().toISOString()
+          })
+          .eq('id', newProfile.dbId);
+        if (error) throw error;
       } else {
-        const result = await sql`
-          INSERT INTO "Profile" (
-            id, nickname, gender, height, weight, age, activity, deficit, track, points, password, bmr, "targetCalories", status, "profileImage", "createdAt", "updatedAt"
-          ) VALUES (
-            gen_random_uuid(), ${newProfile.nickname}, ${newProfile.gender}, ${parseFloat(newProfile.height)}, ${parseFloat(newProfile.weight)}, ${parseInt(newProfile.age)}, ${parseFloat(newProfile.activity)}, ${parseInt(newProfile.deficit)}, ${newProfile.track}, ${newProfile.points}, ${newProfile.password}, ${newProfile.bmr}, ${newProfile.targetCalories}, ${newProfile.status}, ${newProfile.profileImage}, NOW(), NOW()
-          ) RETURNING id
-        `;
+        const { data: result, error } = await supabase
+          .from('Profile')
+          .insert({
+            nickname: newProfile.nickname,
+            gender: newProfile.gender,
+            height: parseFloat(newProfile.height),
+            weight: parseFloat(newProfile.weight),
+            age: parseInt(newProfile.age),
+            activity: parseFloat(newProfile.activity),
+            deficit: parseInt(newProfile.deficit),
+            track: newProfile.track,
+            points: newProfile.points,
+            password: newProfile.password,
+            bmr: newProfile.bmr,
+            targetCalories: newProfile.targetCalories,
+            status: newProfile.status,
+            profileImage: newProfile.profileImage,
+          })
+          .select('id');
+        if (error) throw error;
         if (result && result[0]) {
           newProfile.dbId = result[0].id;
         }
@@ -282,8 +309,13 @@ export const FitnessProvider = ({ children }) => {
       const newProfile = { ...prev, points: newPoints };
 
       if (prev.dbId) {
-        sql`UPDATE "Profile" SET points = ${newPoints}, "updatedAt" = NOW() WHERE id = ${prev.dbId}`
-          .catch(err => console.error('Score sync failed:', err));
+        supabase
+          .from('Profile')
+          .update({ points: newPoints, updatedAt: new Date().toISOString() })
+          .eq('id', prev.dbId)
+          .then(({ error }) => {
+            if (error) console.error('Score sync failed:', error);
+          });
       }
 
       return newProfile;

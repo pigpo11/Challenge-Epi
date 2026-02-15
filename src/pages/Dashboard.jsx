@@ -3,7 +3,7 @@ import { useRef, useState, useEffect } from 'react';
 import { useFitness } from '../hooks/useFitness';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Activity, Utensils, Award, TrendingUp, Camera, Settings, ChevronRight, Home, Trophy, User, MessageCircle, X, ChevronLeft, Flame, Loader2 } from 'lucide-react';
-import sql from '../services/database';
+import supabase from '../services/database';
 import BottomNav from '../components/BottomNav';
 
 const Dashboard = () => {
@@ -18,16 +18,17 @@ const Dashboard = () => {
     const fetchRankings = async () => {
         try {
             setLoadingRankings(true);
-            const results = await sql`
-                SELECT id, nickname as name, points as score, status, "profileImage"
-                FROM "Profile"
-                ORDER BY points DESC
-                LIMIT 5
-            `;
-            const formatted = results.map((user, index) => ({
+            const { data: results, error } = await supabase
+                .from('Profile')
+                .select('id, nickname, points, status, profileImage')
+                .order('points', { ascending: false })
+                .limit(5);
+            if (error) throw error;
+
+            const formatted = (results || []).map((user, index) => ({
                 rank: index + 1,
-                name: user.name,
-                score: Number(user.score) || 0,
+                name: user.nickname,
+                score: Number(user.points) || 0,
                 status: user.status || '오늘도 화이팅!',
                 profileImage: user.profileImage,
                 isMe: user.id === profile.dbId
@@ -131,14 +132,24 @@ const Dashboard = () => {
                 }
 
                 try {
-                    // 1. Update points (Try to verify profile existence)
-                    await sql`UPDATE "Profile" SET points = ${newProfile.points}, "updatedAt" = NOW() WHERE id = ${targetDbId}`;
+                    // 1. Update points
+                    const { error: pointsError } = await supabase
+                        .from('Profile')
+                        .update({ points: newProfile.points, updatedAt: new Date().toISOString() })
+                        .eq('id', targetDbId);
+                    if (pointsError) throw pointsError;
 
-                    // 2. Create Community Post - Using the primary postId generated above
-                    await sql`
-                        INSERT INTO "Post" (id, "profileId", type, image, likes, "createdAt")
-                        VALUES (${postId}, ${targetDbId}, ${type}, ${base64String}, 0, NOW())
-                    `;
+                    // 2. Create Community Post
+                    const { error: postError } = await supabase
+                        .from('Post')
+                        .insert({
+                            id: postId,
+                            profileId: targetDbId,
+                            type: type,
+                            image: base64String,
+                            likes: 0,
+                        });
+                    if (postError) throw postError;
 
                     // Refetch rankings after DB update
                     await fetchRankings();
@@ -177,16 +188,20 @@ const Dashboard = () => {
         // Sync to DB
         if (profile.dbId) {
             try {
-                // 1. Recover points in DB
-                await sql`UPDATE "Profile" SET points = GREATEST(0, points - 10), "updatedAt" = NOW() WHERE id = ${profile.dbId}`;
+                // 1. Decrement points in DB
+                const { error: rpcError } = await supabase.rpc('decrement_points', {
+                    profile_id: profile.dbId,
+                    amount: 10
+                });
+                if (rpcError) throw rpcError;
 
                 // 2. Delete the corresponding post from Community
                 if (typeof imageToDelete === 'object' && imageToDelete.id) {
-                    await sql`DELETE FROM "Post" WHERE id = ${imageToDelete.id}`;
+                    await supabase.from('Post').delete().eq('id', imageToDelete.id);
                 } else {
                     const imgStr = typeof imageToDelete === 'string' ? imageToDelete : (imageToDelete?.image || '');
                     if (imgStr) {
-                        await sql`DELETE FROM "Post" WHERE "profileId" = ${profile.dbId} AND image = ${imgStr}`;
+                        await supabase.from('Post').delete().eq('profileId', profile.dbId).eq('image', imgStr);
                     }
                 }
 

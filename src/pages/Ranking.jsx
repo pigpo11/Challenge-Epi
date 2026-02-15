@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ChevronLeft, Trophy, Loader2, User } from 'lucide-react';
 import { useFitness } from '../hooks/useFitness';
-import sql from '../services/database';
+import supabase from '../services/database';
 
 const Ranking = () => {
     const navigate = useNavigate();
@@ -14,17 +14,17 @@ const Ranking = () => {
     useEffect(() => {
         const fetchRankings = async () => {
             try {
-                const results = await sql`
-                    SELECT nickname as name, points as score, status, id, "profileImage"
-                    FROM "Profile"
-                    ORDER BY points DESC
-                    LIMIT 20
-                `;
+                const { data: results, error } = await supabase
+                    .from('Profile')
+                    .select('id, nickname, points, status, profileImage')
+                    .order('points', { ascending: false })
+                    .limit(20);
+                if (error) throw error;
 
-                const formatted = results.map((user, index) => ({
+                const formatted = (results || []).map((user, index) => ({
                     rank: index + 1,
-                    name: user.name,
-                    score: Number(user.score) || 0,
+                    name: user.nickname,
+                    score: Number(user.points) || 0,
                     status: user.status || '파이팅!',
                     profileImage: user.profileImage,
                     isMe: user.id === profile.dbId

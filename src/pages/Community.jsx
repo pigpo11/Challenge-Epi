@@ -3,7 +3,7 @@ import { useFitness } from '../hooks/useFitness';
 import { motion } from 'framer-motion';
 import { MessageCircle, Heart, User as UserIcon, Home, MessageSquare, ChevronLeft, X, Loader2, Camera, Trash2 } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
-import sql from '../services/database';
+import supabase from '../services/database';
 import BottomNav from '../components/BottomNav';
 
 const Community = () => {
@@ -17,49 +17,43 @@ const Community = () => {
     useEffect(() => {
         const fetchPosts = async () => {
             try {
-                // Fetch posts first
-                const postResults = await sql`
-                    SELECT 
-                        p.id, 
-                        p.type, 
-                        p.image, 
-                        p.likes, 
-                        p."createdAt" as time,
-                        pr.nickname as user,
-                        pr.id as "profileId",
-                        pr."profileImage"
-                    FROM "Post" p
-                    JOIN "Profile" pr ON p."profileId" = pr.id
-                    ORDER BY p."createdAt" DESC
-                `;
+                // Fetch posts with profile info via foreign key join
+                const { data: postResults, error: postError } = await supabase
+                    .from('Post')
+                    .select('id, type, image, likes, createdAt, profileId, profile:profileId(id, nickname, profileImage)')
+                    .order('createdAt', { ascending: false });
+                if (postError) throw postError;
 
-                // Fetch ALL comments and group them (or fetch per post, but one big query is often better for lists)
-                const commentResults = await sql`
-                    SELECT 
-                        c.id, 
-                        c."postId", 
-                        c.text, 
-                        c."createdAt", 
-                        pr.nickname as user,
-                        pr."profileImage"
-                    FROM "Comment" c
-                    JOIN "Profile" pr ON c."profileId" = pr.id
-                    ORDER BY c."createdAt" ASC
-                `;
+                // Fetch ALL comments with profile info
+                const { data: commentResults, error: commentError } = await supabase
+                    .from('Comment')
+                    .select('id, postId, text, createdAt, profile:profileId(nickname, profileImage)')
+                    .order('createdAt', { ascending: true });
+                if (commentError) throw commentError;
 
                 // Fetch current user's likes from Like table
                 if (profile.dbId) {
-                    const userLikes = await sql`
-                        SELECT "postId" FROM "Like" WHERE "profileId" = ${profile.dbId}
-                    `;
-                    setLikedPosts(userLikes.map(like => like.postId));
+                    const { data: userLikes, error: likesError } = await supabase
+                        .from('Like')
+                        .select('postId')
+                        .eq('profileId', profile.dbId);
+                    if (!likesError && userLikes) {
+                        setLikedPosts(userLikes.map(like => like.postId));
+                    }
                 }
 
-                const formattedPosts = postResults.map(p => {
-                    // Normalize DB string to UTC if it lacks timezone info
-                    const dateObj = (typeof p.time === 'string' && !p.time.includes('Z') && !p.time.includes('+'))
-                        ? new Date(p.time.replace(' ', 'T') + 'Z')
-                        : new Date(p.time);
+                // Flatten comment data
+                const flatComments = (commentResults || []).map(c => ({
+                    id: c.id,
+                    postId: c.postId,
+                    text: c.text,
+                    createdAt: c.createdAt,
+                    user: c.profile?.nickname,
+                    profileImage: c.profile?.profileImage,
+                }));
+
+                const formattedPosts = (postResults || []).map(p => {
+                    const dateObj = new Date(p.createdAt);
 
                     const formattedDate = dateObj.toLocaleDateString('ko-KR', {
                         year: 'numeric',
@@ -69,9 +63,15 @@ const Community = () => {
                     }).replace(/\. /g, '.').replace(/\.$/, '');
 
                     return {
-                        ...p,
+                        id: p.id,
+                        type: p.type,
+                        image: p.image,
+                        likes: p.likes,
+                        user: p.profile?.nickname,
+                        profileId: p.profileId,
+                        profileImage: p.profile?.profileImage,
                         date: formattedDate,
-                        comments: commentResults.filter(c => c.postId === p.id)
+                        comments: flatComments.filter(c => c.postId === p.id)
                     };
                 });
 
@@ -116,10 +116,14 @@ const Community = () => {
 
         // 2. DB Sync
         try {
-            await sql`
-                INSERT INTO "Comment" (id, "postId", "profileId", text, "createdAt")
-                VALUES (gen_random_uuid(), ${postId}, ${profile.dbId}, ${text}, NOW())
-            `;
+            const { error } = await supabase
+                .from('Comment')
+                .insert({
+                    postId: postId,
+                    profileId: profile.dbId,
+                    text: text,
+                });
+            if (error) throw error;
         } catch (err) {
             console.error('Failed to save comment:', err);
             alert('댓글 저장에 실패했습니다.');
@@ -138,32 +142,32 @@ const Community = () => {
         // 1. UI Update (Optimistic)
         if (isLiked) {
             setLikedPosts(prev => prev.filter(id => id !== postId));
-            // Update post likes count in UI
             setPosts(prev => prev.map(post =>
                 post.id === postId ? { ...post, likes: Math.max(0, (post.likes || 0) - 1) } : post
             ));
         } else {
             setLikedPosts(prev => [...prev, postId]);
-            // Update post likes count in UI
             setPosts(prev => prev.map(post =>
                 post.id === postId ? { ...post, likes: (post.likes || 0) + 1 } : post
             ));
         }
 
-        // 2. DB Sync - Insert/Delete Like record and update Post likes count
+        // 2. DB Sync
         try {
             if (isLiked) {
                 // Remove like
-                await sql`DELETE FROM "Like" WHERE "postId" = ${postId} AND "profileId" = ${profile.dbId}`;
-                await sql`UPDATE "Post" SET likes = GREATEST(0, likes - 1) WHERE id = ${postId}`;
+                await supabase.from('Like').delete().eq('postId', postId).eq('profileId', profile.dbId);
+                await supabase.rpc('update_post_likes', { post_id: postId, amount: -1 });
             } else {
                 // Add like
-                await sql`
-                    INSERT INTO "Like" (id, "postId", "profileId", "createdAt")
-                    VALUES (gen_random_uuid(), ${postId}, ${profile.dbId}, NOW())
-                    ON CONFLICT ("postId", "profileId") DO NOTHING
-                `;
-                await sql`UPDATE "Post" SET likes = likes + 1 WHERE id = ${postId}`;
+                const { error: likeError } = await supabase
+                    .from('Like')
+                    .upsert(
+                        { postId: postId, profileId: profile.dbId },
+                        { onConflict: 'postId,profileId', ignoreDuplicates: true }
+                    );
+                if (likeError) throw likeError;
+                await supabase.rpc('update_post_likes', { post_id: postId, amount: 1 });
             }
         } catch (err) {
             console.error('Like sync failed:', err);
@@ -199,7 +203,7 @@ const Community = () => {
 
         // 2. DB Sync
         try {
-            await sql`DELETE FROM "Comment" WHERE id = ${commentId}`;
+            await supabase.from('Comment').delete().eq('id', commentId);
         } catch (err) {
             console.error('Failed to delete comment:', err);
         }
@@ -214,10 +218,10 @@ const Community = () => {
         // 2. DB Sync
         try {
             // Deduct points atomically in DB
-            await sql`UPDATE "Profile" SET points = GREATEST(0, points - 10), "updatedAt" = NOW() WHERE id = ${profile.dbId}`;
+            await supabase.rpc('decrement_points', { profile_id: profile.dbId, amount: 10 });
 
             // Delete post record
-            await sql`DELETE FROM "Post" WHERE id = ${post.id}`;
+            await supabase.from('Post').delete().eq('id', post.id);
 
             // Sync local profile state: remove from certs and update points
             setProfile(prev => {
